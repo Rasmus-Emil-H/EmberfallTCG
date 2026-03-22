@@ -3,6 +3,7 @@
  */
 
 import * as THREE from 'three';
+import { RARITY_COLOR_HEX } from './constants.js';
 
 const CARD_W       = 0.9;
 const CARD_H       = 1.35;
@@ -14,9 +15,7 @@ const CLASS_COLORS = {
     warrior: 0xb45309, mage: 0x3b82f6, ranger: 0x16a34a,
     paladin: 0xfcd34d, druid: 0x15803d, neutral: 0x6b7280,
 };
-const RARITY_COLORS = {
-    common: 0x9ca3af, rare: 0x3b82f6, epic: 0xa855f7, legendary: 0xf59e0b,
-};
+const RARITY_COLORS = RARITY_COLOR_HEX;
 
 /* ── card canvas texture ─────────────────────────────────── */
 function makeCardTexture(card) {

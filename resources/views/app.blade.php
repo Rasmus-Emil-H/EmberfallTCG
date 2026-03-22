@@ -31,8 +31,13 @@
             'play_again'        => __('app.play_again'),
             'rank_updating'     => __('app.rank_updating'),
             'star_earned'       => __('app.star_earned'),
-            'searching'         => __('app.searching'),
-            'match_found'       => __('app.match_found'),
+            'searching'              => __('app.searching'),
+            'match_found'            => __('app.match_found'),
+            'shop_free_claimed'      => __('app.shop_free_claimed'),
+            'shop_buy_gold'          => __('app.shop_buy_gold'),
+            'shop_payment_processing'=> __('app.shop_payment_processing'),
+            'shop_payment_success'   => __('app.shop_payment_success'),
+            'shop_payment_cancel'    => __('app.shop_payment_cancel'),
         ],
     ]) !!};
     </script>
@@ -91,50 +96,11 @@
     <div class="modal">
         <div class="modal-header">
             <h3 class="modal-title"></h3>
-            <button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('active')">×</button>
+            <button class="modal-close" id="modal-close-btn">×</button>
         </div>
         <div class="modal-body"></div>
     </div>
 </div>
-
-<script>
-// Global buy gold function
-async function buyGold() {
-    const btn = document.getElementById('buy-gold-btn');
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
-    try {
-        const response = await fetch('/api/shop/gold', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('auth_token'),
-            }
-        });
-        const data = await response.json();
-        if (response.ok) {
-            document.getElementById('gold-display').textContent = data.gold.toLocaleString();
-            // Store updated gold
-            const user = JSON.parse(localStorage.getItem('realm_user') || '{}');
-            user.gold = data.gold;
-            localStorage.setItem('realm_user', JSON.stringify(user));
-
-            // Show notification
-            const note = document.createElement('div');
-            note.className = 'notification success';
-            note.textContent = '+500 Gold added!';
-            document.getElementById('notifications').appendChild(note);
-            setTimeout(() => note.remove(), 3500);
-        }
-    } catch (e) {
-        console.error(e);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '💰 Get 500 Gold (Free!)';
-    }
-}
-</script>
 
 <script type="module" src="/js/app.js"></script>
 

@@ -193,6 +193,8 @@ class ApiClient {
     adminUpdatePack(id, data)     { return this.put(`/admin/packs/${id}`, data); }
     adminDeletePack(id)           { return this.delete(`/admin/packs/${id}`); }
 
+    purchaseGold(packageId)               { return this.post('/shop/purchase', { package_id: packageId }); }
+
     adminGetTranslationLocales()              { return this.get('/admin/translations/locales'); }
     adminGetTranslations(locale)              { return this.get(`/admin/translations?locale=${locale}`); }
     adminCreateTranslation(data)              { return this.post('/admin/translations', data); }

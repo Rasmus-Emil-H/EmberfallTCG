@@ -16,13 +16,20 @@ class ShopController extends Controller
     public function buyGold(Request $request)
     {
         $user = $request->user();
-        $user->increment('gold', 500);
-        $user->refresh();
+
+        if ($user->free_gold_claimed_at !== null) {
+            return response()->json(['error' => 'Free gold already claimed.'], 422);
+        }
+
+        $user->update([
+            'gold'               => $user->gold + 500,
+            'free_gold_claimed_at' => now(),
+        ]);
 
         return response()->json([
             'message' => 'You received 500 gold!',
-            'gold' => $user->gold,
-            'user' => $user,
+            'gold'    => $user->gold,
         ]);
     }
+
 }

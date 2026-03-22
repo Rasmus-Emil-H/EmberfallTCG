@@ -2,21 +2,7 @@
  * Realm Wars UI Manager
  */
 
-const CLASS_EMOJI = {
-    warrior: '⚔️',
-    mage: '🔮',
-    ranger: '🏹',
-    paladin: '🛡️',
-    druid: '🌿',
-    neutral: '⭐',
-};
-
-const RARITY_LABEL = {
-    common: 'Common',
-    rare: 'Rare',
-    epic: 'Epic',
-    legendary: 'Legendary',
-};
+import { CLASS_EMOJI } from './constants.js';
 
 class UIManager {
     constructor() {

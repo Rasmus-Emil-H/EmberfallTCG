@@ -4,6 +4,7 @@
  */
 
 import * as THREE from 'three';
+import { RARITY_COLOR_HEX } from './constants.js';
 
 // Class color map
 const CLASS_COLORS = {
@@ -15,12 +16,7 @@ const CLASS_COLORS = {
     neutral: { primary: 0x1f2937, secondary: 0x4b5563, emissive: 0x0d1117 },
 };
 
-const RARITY_COLORS = {
-    common:    0x9ca3af,
-    rare:      0x3b82f6,
-    epic:      0xa855f7,
-    legendary: 0xf59e0b,
-};
+const RARITY_COLORS = RARITY_COLOR_HEX;
 
 const RARITY_GLOW_INTENSITY = {
     common:    0.0,

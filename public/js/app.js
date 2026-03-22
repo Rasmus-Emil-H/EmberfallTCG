@@ -6,17 +6,7 @@ import api from './api.js';
 import auth from './auth.js';
 import ui from './ui.js';
 import { GameManager } from './game.js';
-
-const POC_CLASS_GRAD = {
-    warrior: 'linear-gradient(160deg,#7f1d1d,#b45309)',
-    mage:    'linear-gradient(160deg,#1e3a5f,#4c1d95)',
-    ranger:  'linear-gradient(160deg,#14532d,#065f46)',
-    paladin: 'linear-gradient(160deg,#78350f,#92400e)',
-    druid:   'linear-gradient(160deg,#14532d,#1a2e05)',
-    neutral: 'linear-gradient(160deg,#1f2937,#374151)',
-};
-const POC_CLASS_EMOJI  = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
-const POC_RARITY_COLOR = { common:'#6b7280', rare:'#3b82f6', epic:'#a855f7', legendary:'#f59e0b' };
+import { CLASS_EMOJI, CLASS_GRAD, RARITY_COLOR } from './constants.js';
 
 class PackOpener {
     constructor() {
@@ -119,9 +109,9 @@ class PackOpener {
 
         el.innerHTML = `
             <div class="poc-inner">
-                <div class="poc-front" style="--class-grad:${POC_CLASS_GRAD[cls]||POC_CLASS_GRAD.neutral};--rarity-color:${POC_RARITY_COLOR[rarity]||'#6b7280'}">
+                <div class="poc-front" style="--class-grad:${CLASS_GRAD[cls]||CLASS_GRAD.neutral};--rarity-color:${RARITY_COLOR[rarity]||'#6b7280'}">
                     <div class="poc-mana">${card.mana_cost}</div>
-                    <div class="poc-art">${POC_CLASS_EMOJI[cls]||'⭐'}</div>
+                    <div class="poc-art">${CLASS_EMOJI[cls]||'⭐'}</div>
                     <div class="poc-name">${card.name}</div>
                     <div class="poc-type">${card.rarity} · ${card.card_type}</div>
                     <div class="poc-desc">${(card.description||'').slice(0,65)}</div>
@@ -156,7 +146,7 @@ class PackOpener {
     }
 
     _spawnBurst(cardEl, rarity) {
-        const color = POC_RARITY_COLOR[rarity] || '#9ca3af';
+        const color = RARITY_COLOR[rarity] || '#9ca3af';
         const count = rarity === 'legendary' ? 28 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8;
         const rect  = cardEl.getBoundingClientRect();
         const cx    = rect.left + rect.width  / 2;
@@ -235,6 +225,9 @@ class RealmWarsApp {
 
         // Close drawer on any link click inside it
         drawer?.querySelectorAll('a').forEach(a => a.addEventListener('click', closeDrawer));
+
+        // Modal close button
+        document.getElementById('modal-close-btn')?.addEventListener('click', () => ui.hideModal());
 
         // Logout button
         document.getElementById('logout-btn')?.addEventListener('click', () => this._logout());
@@ -464,12 +457,39 @@ class RealmWarsApp {
         ui.showPage('shop');
         ui.showLoadingSpinner('Loading shop...');
 
+        // Show payment result toast if redirected back from QuickPay
+        const hashParams = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+        if (hashParams.get('payment') === 'success') {
+            ui.showNotification(window.APP_DATA?.t?.shop_payment_success ?? 'Payment successful! Gold added.', 'success', 5000);
+            history.replaceState(null, '', '#shop');
+        } else if (hashParams.get('payment') === 'cancel') {
+            ui.showNotification(window.APP_DATA?.t?.shop_payment_cancel ?? 'Payment was cancelled.', 'warning');
+            history.replaceState(null, '', '#shop');
+        }
+
         try {
             const user = await auth.refreshUser();
             ui.hideLoadingSpinner();
             ui.updateGoldDisplay(user.gold);
 
-            // Wire buy buttons and affordability on Blade-rendered shop cards
+            // Free gold button state
+            const freeBtn = document.getElementById('buy-gold-btn');
+            if (freeBtn) {
+                if (user.free_gold_claimed) {
+                    freeBtn.textContent = window.APP_DATA?.t?.shop_free_claimed ?? '✓ Already claimed';
+                    freeBtn.disabled = true;
+                    freeBtn.classList.add('btn-claimed');
+                } else {
+                    freeBtn.onclick = () => this._claimFreeGold();
+                }
+            }
+
+            // Wire gold package buttons
+            document.querySelectorAll('.gold-package-btn').forEach(btn => {
+                btn.addEventListener('click', () => this._purchaseGold(btn.dataset.packageId));
+            });
+
+            // Wire pack buy buttons and affordability
             document.querySelectorAll('.shop-pack-card').forEach(card => {
                 const price  = parseInt(card.dataset.packPrice);
                 const packId = parseInt(card.dataset.packId);
@@ -486,6 +506,37 @@ class RealmWarsApp {
         } catch (err) {
             ui.hideLoadingSpinner();
             ui.showNotification('Failed to load shop: ' + err.message, 'error');
+        }
+    }
+
+    async _claimFreeGold() {
+        const btn = document.getElementById('buy-gold-btn');
+        if (btn) btn.disabled = true;
+        try {
+            const data = await api.buyGold();
+            ui.updateGoldDisplay(data.gold);
+            const user = auth.getUser();
+            if (user) { user.gold = data.gold; user.free_gold_claimed = true; }
+            if (btn) {
+                btn.textContent = window.APP_DATA?.t?.shop_free_claimed ?? '✓ Already claimed';
+                btn.classList.add('btn-claimed');
+            }
+            ui.showNotification('+500 Gold added!', 'success');
+        } catch (err) {
+            ui.showNotification(err.message || 'Could not claim free gold.', 'error');
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    async _purchaseGold(packageId) {
+        const btn = document.querySelector(`.gold-package-btn[data-package-id="${packageId}"]`);
+        if (btn) { btn.disabled = true; btn.textContent = window.APP_DATA?.t?.shop_payment_processing ?? 'Redirecting…'; }
+        try {
+            const data = await api.purchaseGold(packageId);
+            window.location.href = data.payment_url;
+        } catch (err) {
+            ui.showNotification(err.message || 'Payment failed.', 'error');
+            if (btn) { btn.disabled = false; btn.textContent = window.APP_DATA?.t?.shop_buy_gold ?? 'Buy Gold'; }
         }
     }
 
@@ -653,7 +704,7 @@ class RealmWarsApp {
         const canvas = document.getElementById('game-canvas-container');
         this.gameManager = new GameManager();
         // game.js owns showing/hiding the matchmaking overlay and #game-active
-        this.gameManager.startMatchmaking(canvas, user.id);
+        this.gameManager.startMatchmaking(user.id);
     }
 
     // ===== DECKS =====
@@ -865,8 +916,6 @@ class RealmWarsApp {
     async _renderStats() {
         ui.showPage('stats');
         ui.showLoadingSpinner('Loading stats...');
-
-        const CLASS_EMOJI = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
 
         try {
             const s = await api.getStats();
@@ -1092,7 +1141,6 @@ class RealmWarsApp {
     async _adminLoadDashboard() {
         try {
             const d = await api.adminDashboard();
-            const CLASS_EMOJI = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
 
             document.getElementById('admin-stats-grid').innerHTML = [
                 { icon:'👥', label:'Total Users',    value: d.total_users },
@@ -1140,8 +1188,6 @@ class RealmWarsApp {
     }
 
     _adminRenderCardsTable(cards) {
-        const RARITY_COLOR = { common:'#9ca3af', rare:'#3b82f6', epic:'#a855f7', legendary:'#f59e0b' };
-        const CLASS_EMOJI  = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
         document.getElementById('admin-cards-tbody').innerHTML = cards.map(c => `
             <tr data-card-id="${c.id}">
                 <td><strong>${c.name}</strong></td>

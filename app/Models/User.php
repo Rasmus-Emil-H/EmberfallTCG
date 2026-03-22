@@ -13,7 +13,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'gold', 'rank_points', 'win_streak'];
+    protected $fillable = ['name', 'email', 'password', 'gold', 'rank_points', 'win_streak', 'free_gold_claimed_at'];
 
     public function roles()
     {
@@ -30,8 +30,9 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'email_verified_at'    => 'datetime',
+            'free_gold_claimed_at' => 'datetime',
+            'password'             => 'hashed',
         ];
     }
 

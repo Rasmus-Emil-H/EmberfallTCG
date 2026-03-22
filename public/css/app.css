@@ -1070,6 +1070,87 @@ body.game-mode #app  { margin-top: 0; }
 /* ============================================
    12. SHOP PAGE
    ============================================ */
+/* ── Shop sections ── */
+.shop-section { margin-bottom: 40px; }
+.shop-section-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.shop-section-desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+
+/* ── Gold packages ── */
+.gold-packages-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.gold-package {
+  background: var(--glass-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.gold-package:hover { border-color: var(--border-gold); transform: translateY(-2px); }
+.gold-package.popular {
+  border-color: var(--accent-gold);
+  background: linear-gradient(160deg, rgba(245,158,11,0.08) 0%, var(--glass-bg) 100%);
+}
+.gold-package-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-gold);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.gold-package-emoji { font-size: 2.2rem; line-height: 1; }
+.gold-package-label { font-size: 0.85rem; color: var(--text-muted); text-align: center; }
+.gold-package-amount {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+.gold-package-amount span { font-size: 0.8rem; font-weight: 400; opacity: 0.8; }
+.gold-package-price {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.gold-package-btn { width: 100%; margin-top: 4px; }
+
+/* Claimed / disabled free-gold button */
+.btn-claimed,
+.btn-claimed:hover {
+  background: transparent !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-muted) !important;
+  cursor: default;
+}
+
+@media (max-width: 900px) {
+  .gold-packages-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 500px) {
+  .gold-packages-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .gold-package { padding: 20px 10px 16px; }
+}
+
 .shop-hero,
 .gold-shop {
   background: linear-gradient(135deg, var(--purple-dark) 0%, var(--bg-mid) 60%, rgba(245,158,11,0.08) 100%);

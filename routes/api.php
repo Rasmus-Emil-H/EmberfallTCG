@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CardAdminController;
+use App\Http\Controllers\QuickPayController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PackAdminController;
 use App\Http\Controllers\Admin\TranslationAdminController;
@@ -17,6 +18,9 @@ use Illuminate\Support\Facades\Route;
 // Auth routes
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+
+// QuickPay webhook (no auth — called by QuickPay servers)
+Route::post('/quickpay/callback', [QuickPayController::class, 'callback']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -37,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Shop
     Route::get('/shop', [ShopController::class, 'index']);
     Route::post('/shop/gold', [ShopController::class, 'buyGold']);
+    Route::post('/shop/purchase', [QuickPayController::class, 'createPayment']);
 
     // Decks
     Route::get('/decks', [DeckController::class, 'index']);

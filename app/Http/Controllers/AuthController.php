@@ -69,9 +69,10 @@ class AuthController extends Controller
         $rank  = (new RankService())->getRankDisplay($user->rank_points ?? 0);
         $roles = $user->roles->pluck('name')->toArray();
         return response()->json(array_merge($user->toArray(), [
-            'rank'     => $rank,
-            'roles'    => $roles,
-            'is_admin' => in_array('admin', $roles),
+            'rank'              => $rank,
+            'roles'             => $roles,
+            'is_admin'          => in_array('admin', $roles),
+            'free_gold_claimed' => $user->free_gold_claimed_at !== null,
         ]));
     }
 

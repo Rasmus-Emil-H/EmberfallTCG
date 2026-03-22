@@ -4,16 +4,7 @@
 
 import api from './api.js';
 import ui from './ui.js';
-
-const CLASS_EMOJI = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
-const CLASS_GRAD  = {
-    warrior: 'linear-gradient(160deg,#7f1d1d,#b45309)',
-    mage:    'linear-gradient(160deg,#1e3a5f,#4c1d95)',
-    ranger:  'linear-gradient(160deg,#14532d,#065f46)',
-    paladin: 'linear-gradient(160deg,#78350f,#92400e)',
-    druid:   'linear-gradient(160deg,#14532d,#1a2e05)',
-    neutral: 'linear-gradient(160deg,#1f2937,#374151)',
-};
+import { CLASS_EMOJI, CLASS_GRAD } from './constants.js';
 
 export class GameManager {
     constructor() {
@@ -36,7 +27,7 @@ export class GameManager {
 
     /* ── matchmaking ─────────────────────────────── */
 
-    async startMatchmaking(_unused, playerId) {
+    async startMatchmaking(playerId) {
         this.playerId = playerId;
         this._gameOverShown = false;
 
