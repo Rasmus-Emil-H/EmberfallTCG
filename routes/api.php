@@ -6,6 +6,7 @@ use App\Http\Controllers\DeckController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\PackController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes
@@ -15,6 +16,10 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
+
+    // Stats
+    Route::get('/stats', [StatsController::class, 'index']);
 
     // Cards
     Route::get('/cards', [CardController::class, 'index']);

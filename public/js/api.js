@@ -168,6 +168,16 @@ class ApiClient {
     surrender(gameId) {
         return this.post(`/game/${gameId}/surrender`);
     }
+
+    // ===== Stats =====
+    getStats() {
+        return this.get('/stats');
+    }
+
+    // ===== Profile =====
+    updateProfile(data) {
+        return this.put('/auth/profile', data);
+    }
 }
 
 const api = new ApiClient();

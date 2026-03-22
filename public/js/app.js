@@ -22,6 +22,10 @@ class RealmWarsApp {
     }
 
     _init() {
+        // Apply saved theme preference
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.dataset.theme = savedTheme;
+
         // Setup nav link clicks
         document.querySelectorAll('.nav-links a[data-page]').forEach(link => {
             link.addEventListener('click', (e) => {
@@ -46,6 +50,9 @@ class RealmWarsApp {
     async _route() {
         const hash = window.location.hash || '#home';
         const page = hash.replace('#', '');
+
+        // Fullscreen game mode — hide nav, remove margin
+        document.body.classList.toggle('game-mode', page === 'game');
 
         // Destroy previous scenes
         if (page !== 'open-packs' && this.packOpeningScene) {
@@ -81,6 +88,8 @@ class RealmWarsApp {
             case 'game': await this._renderGame(); break;
             case 'deck-builder': await this._renderDeckBuilder(); break;
             case 'decks': await this._renderDecks(); break;
+            case 'stats': await this._renderStats(); break;
+            case 'options': await this._renderOptions(); break;
             default: await this._renderHome(); break;
         }
     }
@@ -404,42 +413,22 @@ class RealmWarsApp {
         const user = await auth.refreshUser();
         ui.updateGoldDisplay(user.gold);
 
-        // Show player info
         const playerNameEl = document.getElementById('player-name-display');
         if (playerNameEl) playerNameEl.textContent = user.name;
 
-        // Show matchmaking overlay
-        const matchmakingOverlay = document.getElementById('matchmaking-overlay');
-        if (matchmakingOverlay) {
-            matchmakingOverlay.style.display = 'flex';
-        }
-
-        // Setup event handlers
-        const endTurnBtn = document.getElementById('end-turn-btn');
-        if (endTurnBtn) {
-            endTurnBtn.onclick = () => this.gameManager?.handleEndTurn();
-        }
-
-        const surrenderBtn = document.getElementById('surrender-btn');
-        if (surrenderBtn) {
-            surrenderBtn.onclick = () => this.gameManager?.handleSurrender();
-        }
-
-        const gameBoardContainer = document.getElementById('game-canvas-container');
+        // Wire buttons (game.js owns the logic)
+        document.getElementById('end-turn-btn').onclick   = () => this.gameManager?.handleEndTurn();
+        document.getElementById('surrender-btn').onclick  = () => this.gameManager?.handleSurrender();
 
         if (this.gameManager) {
             this.gameManager.destroy();
+            this.gameManager = null;
         }
 
+        const canvas = document.getElementById('game-canvas-container');
         this.gameManager = new GameManager();
-
-        // Start matchmaking
-        await this.gameManager.startMatchmaking(gameBoardContainer, user.id);
-
-        // Hide matchmaking overlay when board is ready
-        if (matchmakingOverlay) {
-            matchmakingOverlay.style.display = 'none';
-        }
+        // game.js owns showing/hiding the matchmaking overlay and #game-active
+        this.gameManager.startMatchmaking(canvas, user.id);
     }
 
     // ===== DECKS =====
@@ -643,6 +632,180 @@ class RealmWarsApp {
             existing.quantity--;
         } else {
             this.currentDeck.cards = this.currentDeck.cards.filter(c => c.card.id !== cardId);
+        }
+    }
+
+    // ===== STATS =====
+
+    async _renderStats() {
+        ui.showPage('stats');
+        ui.showLoadingSpinner('Loading stats...');
+
+        const CLASS_EMOJI = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
+
+        try {
+            const s = await api.getStats();
+            ui.hideLoadingSpinner();
+
+            // Overview
+            document.getElementById('stat-games').textContent       = s.games_played;
+            document.getElementById('stat-wins').textContent        = s.wins;
+            document.getElementById('stat-losses').textContent      = s.losses;
+            document.getElementById('stat-winrate').textContent     = s.games_played > 0 ? s.win_rate + '%' : '—';
+            document.getElementById('stat-turns').textContent       = s.games_played > 0 ? s.avg_turns : '—';
+            document.getElementById('stat-cards-played').textContent = s.total_cards_played;
+
+            // Streak
+            const streakEl = document.getElementById('stats-streak');
+            if (s.streak > 0 && s.streak_type) {
+                const isWin = s.streak_type === 'win';
+                streakEl.innerHTML = `
+                    <div class="streak-display streak-display--${s.streak_type}">
+                        <div class="streak-num">${s.streak}</div>
+                        <div class="streak-label">${isWin ? '🔥 Win' : '❄️ Loss'} Streak</div>
+                    </div>`;
+            } else {
+                streakEl.innerHTML = `<div class="stats-empty">No games yet</div>`;
+            }
+
+            // Top cards
+            const topEl = document.getElementById('stats-top-cards');
+            if (s.top_cards.length) {
+                topEl.innerHTML = s.top_cards.map((c, i) => `
+                    <div class="top-card-row">
+                        <div class="top-card-rank">#${i+1}</div>
+                        <div class="top-card-icon">${CLASS_EMOJI[c.hero_class] || '⭐'}</div>
+                        <div class="top-card-info">
+                            <div class="top-card-name">${c.name}</div>
+                            <div class="top-card-meta">${c.hero_class} · ${c.rarity}</div>
+                        </div>
+                        <div class="top-card-count">${c.play_count}×</div>
+                    </div>`).join('');
+            } else {
+                topEl.innerHTML = `<div class="stats-empty">No cards played yet</div>`;
+            }
+
+            // Class breakdown
+            const classEl = document.getElementById('stats-class-breakdown');
+            if (s.class_breakdown.length) {
+                const max = s.class_breakdown[0].total;
+                classEl.innerHTML = s.class_breakdown.map(c => `
+                    <div class="class-bar-row">
+                        <div class="class-bar-label">${CLASS_EMOJI[c.hero_class] || '⭐'} ${c.hero_class}</div>
+                        <div class="class-bar-track">
+                            <div class="class-bar-fill" style="width:${Math.round((c.total/max)*100)}%"></div>
+                        </div>
+                        <div class="class-bar-count">${c.total}</div>
+                    </div>`).join('');
+            } else {
+                classEl.innerHTML = `<div class="stats-empty">No data yet</div>`;
+            }
+
+            // Recent games
+            const recentEl = document.getElementById('stats-recent-games');
+            if (s.recent_games.length) {
+                recentEl.innerHTML = s.recent_games.map(g => `
+                    <div class="recent-game-row ${g.won ? 'recent-win' : 'recent-loss'}">
+                        <div class="rg-result">${g.won ? '🏆' : '💀'}</div>
+                        <div class="rg-info">
+                            <div class="rg-opponent">vs ${g.opponent}</div>
+                            <div class="rg-meta">${g.turns} turns · ${new Date(g.played_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="rg-badge ${g.won ? 'rg-badge--win' : 'rg-badge--loss'}">${g.won ? 'WIN' : 'LOSS'}</div>
+                    </div>`).join('');
+            } else {
+                recentEl.innerHTML = `<div class="stats-empty">No games played yet</div>`;
+            }
+
+        } catch (err) {
+            ui.hideLoadingSpinner();
+            ui.showNotification('Failed to load stats: ' + err.message, 'error');
+        }
+    }
+
+    // ===== OPTIONS =====
+
+    async _renderOptions() {
+        ui.showPage('options');
+
+        try {
+            const user = await auth.refreshUser();
+
+            // Pre-fill profile form
+            const nameEl  = document.getElementById('options-name');
+            const emailEl = document.getElementById('options-email');
+            if (nameEl)  nameEl.value  = user.name  || '';
+            if (emailEl) emailEl.value = user.email || '';
+
+            // Theme buttons
+            const currentTheme = document.documentElement.dataset.theme || 'dark';
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+                btn.addEventListener('click', () => {
+                    const t = btn.dataset.theme;
+                    document.documentElement.dataset.theme = t;
+                    localStorage.setItem('theme', t);
+                    document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+                });
+            });
+
+            // Profile form
+            const profileForm = document.getElementById('profile-form');
+            if (profileForm) {
+                profileForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const btn = profileForm.querySelector('button[type=submit]');
+                    btn.disabled = true;
+                    btn.textContent = 'Saving...';
+                    try {
+                        const updated = await api.updateProfile({
+                            name:  document.getElementById('options-name').value,
+                            email: document.getElementById('options-email').value,
+                        });
+                        auth.user = updated;
+                        ui.showNotification('Profile updated!', 'success');
+                    } catch (err) {
+                        ui.showNotification(err.data?.error || err.message, 'error');
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = 'Save Changes';
+                    }
+                };
+            }
+
+            // Password form
+            const pwForm = document.getElementById('password-form');
+            if (pwForm) {
+                pwForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const newPw  = document.getElementById('options-new-pw').value;
+                    const confPw = document.getElementById('options-confirm-pw').value;
+                    if (newPw !== confPw) {
+                        ui.showNotification('Passwords do not match!', 'error');
+                        return;
+                    }
+                    const btn = pwForm.querySelector('button[type=submit]');
+                    btn.disabled = true;
+                    btn.textContent = 'Updating...';
+                    try {
+                        await api.updateProfile({
+                            current_password:      document.getElementById('options-current-pw').value,
+                            password:              newPw,
+                            password_confirmation: confPw,
+                        });
+                        pwForm.reset();
+                        ui.showNotification('Password updated!', 'success');
+                    } catch (err) {
+                        ui.showNotification(err.data?.error || err.message, 'error');
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = 'Update Password';
+                    }
+                };
+            }
+
+        } catch (err) {
+            ui.showNotification('Failed to load settings: ' + err.message, 'error');
         }
     }
 

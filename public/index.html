@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Realm Wars - Fantasy Card Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/app.css">
     <script type="importmap">
     {
@@ -16,18 +19,25 @@
 </head>
 <body>
 
+<div class="bg-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
 <!-- ===== NAVIGATION ===== -->
 <nav id="nav">
-    <div class="nav-logo">REALM<span>&nbsp;WARS</span></div>
+    <div class="nav-logo"><span class="logo-realm">REALM</span><span class="logo-wars">WARS</span></div>
     <div class="nav-links">
-        <a href="#" data-page="home" data-auth="required">Home</a>
-        <a href="#" data-page="collection" data-auth="required">Collection</a>
-        <a href="#" data-page="open-packs" data-auth="required">Open Packs</a>
-        <a href="#" data-page="shop" data-auth="required">Shop</a>
-        <a href="#" data-page="decks" data-auth="required">Decks</a>
-        <a href="#" data-page="game" data-auth="required">Play</a>
-        <a href="#" data-page="login" data-auth="guest">Login</a>
-        <a href="#" data-page="register" data-auth="guest">Register</a>
+        <a href="#" class="nav-link" data-page="home" data-auth="required">Home</a>
+        <a href="#" class="nav-link" data-page="collection" data-auth="required">Collection</a>
+        <a href="#" class="nav-link" data-page="open-packs" data-auth="required">Open Packs</a>
+        <a href="#" class="nav-link" data-page="shop" data-auth="required">Shop</a>
+        <a href="#" class="nav-link" data-page="decks" data-auth="required">Decks</a>
+        <a href="#" class="nav-link" data-page="game" data-auth="required">Play</a>
+        <a href="#" class="nav-link" data-page="stats" data-auth="required">Stats</a>
+        <a href="#" class="nav-link" data-page="options" data-auth="required">⚙️</a>
+        <a href="#" class="nav-link" data-page="login" data-auth="guest">Login</a>
+        <a href="#" class="nav-link" data-page="register" data-auth="guest">Register</a>
         <button id="logout-btn" data-auth="required">Logout</button>
     </div>
     <div class="nav-gold" data-auth="required">
@@ -46,19 +56,19 @@
                 <h1 class="auth-title">⚔️ REALM WARS</h1>
                 <p class="auth-subtitle">Enter the realm, Champion</p>
                 <form id="login-form">
-                    <div class="form-group">
+                    <div class="input-float">
+                        <input type="email" id="login-email" placeholder=" " required autocomplete="email">
                         <label for="login-email">Email</label>
-                        <input type="email" id="login-email" placeholder="champion@realm.com" required autocomplete="email">
                     </div>
-                    <div class="form-group">
+                    <div class="input-float">
+                        <input type="password" id="login-password" placeholder=" " required autocomplete="current-password">
                         <label for="login-password">Password</label>
-                        <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
                     </div>
-                    <button type="submit" class="btn btn-primary">Enter the Realm</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:0.9rem;">Enter the Realm</button>
                 </form>
                 <div class="auth-divider">No account yet?</div>
-                <a href="#register" class="btn btn-secondary" style="text-align:center;display:block;">Create Account</a>
-                <div style="margin-top:15px;text-align:center;font-size:0.8rem;color:var(--text-secondary);">
+                <a href="#register" class="btn btn-gold" style="text-align:center;display:block;width:100%;">Create Account</a>
+                <div style="margin-top:16px;text-align:center;font-size:0.78rem;color:var(--text-muted);">
                     Test account: test@test.com / password
                 </div>
             </div>
@@ -72,26 +82,26 @@
                 <h1 class="auth-title">⚔️ JOIN</h1>
                 <p class="auth-subtitle">Create your legend</p>
                 <form id="register-form">
-                    <div class="form-group">
+                    <div class="input-float">
+                        <input type="text" id="reg-name" placeholder=" " required>
                         <label for="reg-name">Champion Name</label>
-                        <input type="text" id="reg-name" placeholder="Sir Gallanthorn" required>
                     </div>
-                    <div class="form-group">
+                    <div class="input-float">
+                        <input type="email" id="reg-email" placeholder=" " required autocomplete="email">
                         <label for="reg-email">Email</label>
-                        <input type="email" id="reg-email" placeholder="champion@realm.com" required autocomplete="email">
                     </div>
-                    <div class="form-group">
-                        <label for="reg-password">Password</label>
-                        <input type="password" id="reg-password" placeholder="At least 6 characters" required autocomplete="new-password">
+                    <div class="input-float">
+                        <input type="password" id="reg-password" placeholder=" " required autocomplete="new-password">
+                        <label for="reg-password">Password (min. 6 characters)</label>
                     </div>
-                    <div class="form-group">
+                    <div class="input-float">
+                        <input type="password" id="reg-password-confirm" placeholder=" " required autocomplete="new-password">
                         <label for="reg-password-confirm">Confirm Password</label>
-                        <input type="password" id="reg-password-confirm" placeholder="••••••••" required autocomplete="new-password">
                     </div>
-                    <button type="submit" class="btn btn-primary">Join the Realm</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:0.9rem;">Join the Realm</button>
                 </form>
                 <div class="auth-divider">Already a champion?</div>
-                <a href="#login" class="btn btn-secondary" style="text-align:center;display:block;">Sign In</a>
+                <a href="#login" class="btn btn-gold" style="text-align:center;display:block;width:100%;">Sign In</a>
             </div>
         </div>
     </div>
@@ -105,44 +115,59 @@
 
         <div class="user-stats">
             <div class="stat-item">
-                <div class="stat-value" id="home-gold">0</div>
+                <div class="stat-value" id="home-gold" data-target="0">0</div>
                 <div class="stat-label">🪙 Gold</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" id="home-cards">0</div>
+                <div class="stat-value" id="home-cards" data-target="0">0</div>
                 <div class="stat-label">🃏 Cards</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" id="home-decks">0</div>
+                <div class="stat-value" id="home-decks" data-target="0">0</div>
                 <div class="stat-label">📋 Decks</div>
             </div>
         </div>
 
         <div class="dashboard-grid">
-            <div class="dashboard-card" onclick="window.location.hash='#game'">
-                <div class="card-icon">⚔️</div>
-                <h3>Battle</h3>
-                <p>Enter the arena and face opponents in real-time PvP combat</p>
+            <div class="dashboard-card glass-card" onclick="window.location.hash='#game'">
+                <div class="dash-icon">⚔️</div>
+                <div class="dash-content">
+                    <h3>Battle</h3>
+                    <p>Enter the arena and face opponents in real-time PvP combat</p>
+                </div>
+                <div class="dash-arrow">→</div>
             </div>
-            <div class="dashboard-card" onclick="window.location.hash='#open-packs'">
-                <div class="card-icon">📦</div>
-                <h3>Open Packs</h3>
-                <p>Unlock new cards with stunning 3D pack opening animations</p>
+            <div class="dashboard-card glass-card" onclick="window.location.hash='#open-packs'">
+                <div class="dash-icon">📦</div>
+                <div class="dash-content">
+                    <h3>Open Packs</h3>
+                    <p>Unlock new cards with stunning 3D pack opening animations</p>
+                </div>
+                <div class="dash-arrow">→</div>
             </div>
-            <div class="dashboard-card" onclick="window.location.hash='#collection'">
-                <div class="card-icon">🃏</div>
-                <h3>Collection</h3>
-                <p>Browse your card collection and discover powerful combos</p>
+            <div class="dashboard-card glass-card" onclick="window.location.hash='#collection'">
+                <div class="dash-icon">🃏</div>
+                <div class="dash-content">
+                    <h3>Collection</h3>
+                    <p>Browse your card collection and discover powerful combos</p>
+                </div>
+                <div class="dash-arrow">→</div>
             </div>
-            <div class="dashboard-card" onclick="window.location.hash='#deck-builder'">
-                <div class="card-icon">📋</div>
-                <h3>Deck Builder</h3>
-                <p>Craft the perfect deck strategy to dominate the battlefield</p>
+            <div class="dashboard-card glass-card" onclick="window.location.hash='#deck-builder'">
+                <div class="dash-icon">📋</div>
+                <div class="dash-content">
+                    <h3>Deck Builder</h3>
+                    <p>Craft the perfect deck strategy to dominate the battlefield</p>
+                </div>
+                <div class="dash-arrow">→</div>
             </div>
-            <div class="dashboard-card" onclick="window.location.hash='#shop'">
-                <div class="card-icon">🏪</div>
-                <h3>Shop</h3>
-                <p>Spend your gold on card packs to expand your collection</p>
+            <div class="dashboard-card glass-card" onclick="window.location.hash='#shop'">
+                <div class="dash-icon">🏪</div>
+                <div class="dash-content">
+                    <h3>Shop</h3>
+                    <p>Spend your gold on card packs to expand your collection</p>
+                </div>
+                <div class="dash-arrow">→</div>
             </div>
         </div>
     </div>
@@ -154,12 +179,12 @@
             <p>Spend your gold to acquire powerful new cards</p>
         </div>
 
-        <div class="gold-shop">
+        <div class="shop-hero gold-shop">
             <div class="gold-shop-info">
                 <h3>Need More Gold?</h3>
                 <p>Get 500 bonus gold to fuel your collection</p>
             </div>
-            <button class="btn btn-primary" id="buy-gold-btn" onclick="buyGold()">
+            <button class="btn btn-gold" id="buy-gold-btn" onclick="buyGold()">
                 💰 Get 500 Gold (Free!)
             </button>
         </div>
@@ -177,7 +202,7 @@
         </div>
 
         <div class="collection-filters">
-            <span style="color:var(--text-secondary);font-size:0.85rem;">Rarity:</span>
+            <span style="color:var(--text-secondary);font-size:0.8rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">Rarity:</span>
             <button class="filter-btn collection-filter-rarity active" data-rarity="all">All</button>
             <button class="filter-btn collection-filter-rarity rarity-common" data-rarity="common">Common</button>
             <button class="filter-btn collection-filter-rarity rarity-rare" data-rarity="rare">Rare</button>
@@ -186,7 +211,7 @@
         </div>
 
         <div class="collection-filters">
-            <span style="color:var(--text-secondary);font-size:0.85rem;">Class:</span>
+            <span style="color:var(--text-secondary);font-size:0.8rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">Class:</span>
             <button class="filter-btn collection-filter-class active" data-class="all">All</button>
             <button class="filter-btn collection-filter-class" data-class="warrior">⚔️ Warrior</button>
             <button class="filter-btn collection-filter-class" data-class="mage">🔮 Mage</button>
@@ -228,48 +253,153 @@
     </div>
 
     <!-- GAME PAGE -->
-    <div id="game-page" class="page" style="padding:0;max-width:100%;">
+    <div id="game-page" class="page game-page-fullscreen">
 
-        <!-- Matchmaking Overlay -->
-        <div id="matchmaking-overlay" class="matchmaking-overlay" style="display:none;">
-            <h2>🔍 Finding Match</h2>
-            <div class="matchmaking-spinner"></div>
-            <p class="matchmaking-status">Searching for an worthy opponent...</p>
-            <button class="btn btn-secondary btn-sm" onclick="window.location.hash='#home'" style="margin-top:10px;">Cancel</button>
-        </div>
-
-        <!-- Game Status Bar -->
-        <div class="game-status-bar">
-            <div class="player-info">
-                <span style="color:var(--red-light);">❤️</span>
-                <span id="opponent-hp" style="color:var(--red-light);font-weight:bold;">30</span>
-                <span style="color:var(--text-secondary);margin-left:8px;" id="opponent-name">Opponent</span>
-            </div>
-
-            <div id="game-turn-indicator" class="game-turn-indicator">Waiting...</div>
-
-            <div class="player-info">
-                <span id="player-name-display" style="color:var(--text-secondary);">You</span>
-                <span style="color:var(--green-light);margin-left:8px;">❤️</span>
-                <span id="player-hp" style="color:var(--green-light);font-weight:bold;">30</span>
+        <!-- Matchmaking Screen -->
+        <div id="matchmaking-overlay" class="matchmaking-overlay">
+            <div class="matchmaking-card">
+                <div class="matchmaking-icon">⚔️</div>
+                <h2>Finding Match</h2>
+                <div class="matchmaking-spinner"></div>
+                <p class="matchmaking-status">Searching for a worthy opponent...</p>
+                <button class="btn btn-ghost btn-sm" onclick="window.location.hash='#home'">Cancel</button>
             </div>
         </div>
 
-        <!-- 3D Game Board -->
-        <div id="game-canvas-container" style="position:relative;width:100%;height:calc(100vh - 120px);">
-            <!-- Three.js canvas rendered here -->
+        <!-- Active Game UI (hidden until match found) -->
+        <div id="game-active" style="display:none;width:100%;height:100%;flex-direction:column;">
 
-            <!-- UI Overlay at bottom -->
-            <div class="game-ui-overlay">
-                <div id="game-mana-display" class="mana-display">
-                    <!-- Mana crystals -->
+            <!-- Top: Opponent info bar -->
+            <div class="game-top-bar">
+                <div class="game-hero-info opponent">
+                    <div class="hero-avatar opponent-avatar">👤</div>
+                    <div class="hero-details">
+                        <span class="hero-name" id="opponent-name">Opponent</span>
+                        <div class="hero-hp-bar">
+                            <div class="hero-hp-fill opponent-hp-fill" id="opponent-hp-fill" style="width:100%"></div>
+                            <span class="hero-hp-text" id="opponent-hp">30</span>
+                        </div>
+                    </div>
                 </div>
-
-                <div style="display:flex;gap:10px;">
-                    <button id="end-turn-btn" class="btn btn-primary btn-sm" disabled>End Turn</button>
-                    <button id="surrender-btn" class="btn btn-danger btn-sm">Surrender</button>
+                <div id="game-turn-indicator" class="game-turn-indicator">Waiting...</div>
+                <div class="game-hero-info player">
+                    <div class="hero-details" style="align-items:flex-end;">
+                        <span class="hero-name" id="player-name-display">You</span>
+                        <div class="hero-hp-bar">
+                            <div class="hero-hp-fill player-hp-fill" id="player-hp-fill" style="width:100%"></div>
+                            <span class="hero-hp-text" id="player-hp">30</span>
+                        </div>
+                    </div>
+                    <div class="hero-avatar player-avatar">🧙</div>
                 </div>
             </div>
+
+            <!-- 2D Board -->
+            <div class="game-mid">
+
+                <div class="game-board-2d">
+                    <!-- Decorative corner elements -->
+                    <div class="board-corner board-corner-tl"></div>
+                    <div class="board-corner board-corner-tr"></div>
+                    <div class="board-corner board-corner-bl"></div>
+                    <div class="board-corner board-corner-br"></div>
+
+                    <!-- Opponent hero zone -->
+                    <div class="board-hero-row board-hero-row--top">
+                        <div class="board-hero-portrait opponent-portrait" id="opponent-portrait">
+                            <span class="hero-portrait-emoji">👤</span>
+                            <div class="hero-portrait-hp" id="portrait-opp-hp">30</div>
+                        </div>
+                        <!-- Opponent game log (spells + deaths) -->
+                        <div class="spell-log-wrap spell-log-wrap--opp" id="opp-log-wrap">
+                            <div class="spell-log-badge" id="opp-log-badge">
+                                <span class="spell-log-icon">📜</span>
+                                <span class="spell-log-count" id="opp-log-count">0</span>
+                            </div>
+                            <div class="spell-log-popup" id="opp-log-popup">
+                                <div class="spell-log-title">OPPONENT LOG</div>
+                                <div class="spell-log-list" id="opp-log-list">
+                                    <div class="spell-log-empty">Nothing yet</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Opponent minions -->
+                    <div class="board-minion-row board-minion-row--top" id="opponent-board"></div>
+
+                    <!-- Center divider line -->
+                    <div class="board-divider">
+                        <div class="board-divider-line"></div>
+                        <div class="board-divider-gem"></div>
+                    </div>
+
+                    <!-- Player minions + drop zone -->
+                    <div class="board-minion-row board-minion-row--bottom" id="player-board">
+                        <div class="play-zone-hint" id="play-zone-hint">Drop card here to play</div>
+                    </div>
+
+                    <!-- Player hero zone -->
+                    <div class="board-hero-row board-hero-row--bottom">
+                        <div class="board-hero-portrait player-portrait" id="player-portrait">
+                            <span class="hero-portrait-emoji">🧙</span>
+                            <div class="hero-portrait-hp" id="portrait-my-hp">30</div>
+                        </div>
+                        <!-- Player game log (spells + deaths) -->
+                        <div class="spell-log-wrap spell-log-wrap--player" id="my-log-wrap">
+                            <div class="spell-log-badge" id="my-log-badge">
+                                <span class="spell-log-icon">📜</span>
+                                <span class="spell-log-count" id="my-log-count">0</span>
+                            </div>
+                            <div class="spell-log-popup" id="my-log-popup">
+                                <div class="spell-log-title">YOUR LOG</div>
+                                <div class="spell-log-list" id="my-log-list">
+                                    <div class="spell-log-empty">Nothing yet</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Deck sidebar -->
+                <div class="game-deck-sidebar">
+                    <div class="deck-sidebar-label">YOUR DECK</div>
+                    <div class="deck-stack" id="deck-stack">
+                        <div class="deck-card-back deck-back-3"></div>
+                        <div class="deck-card-back deck-back-2"></div>
+                        <div class="deck-card-back deck-back-1"></div>
+                    </div>
+                    <div class="deck-count-badge" id="deck-count-display">30</div>
+                    <div class="deck-sidebar-label" style="font-size:0.65rem;margin-top:4px;">CARDS LEFT</div>
+
+                    <div style="flex:1;"></div>
+
+                    <!-- Mana display -->
+                    <div class="sidebar-mana">
+                        <div class="sidebar-mana-label">MANA</div>
+                        <div id="game-mana-display" class="mana-display-sidebar"></div>
+                    </div>
+
+                    <div style="flex:1;"></div>
+
+                    <!-- Controls -->
+                    <div class="sidebar-controls">
+                        <button id="end-turn-btn" class="btn btn-gold end-turn-btn" disabled>
+                            <span class="end-turn-text">END TURN</span>
+                            <span class="end-turn-sub" id="end-turn-sub">Opponent's turn</span>
+                        </button>
+                        <button id="surrender-btn" class="btn btn-danger btn-sm surrender-btn">Surrender</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom: Player hand -->
+            <div class="game-hand-area">
+                <div id="game-hand" class="game-hand">
+                    <!-- Hand cards rendered by JS as HTML -->
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -278,7 +408,7 @@
         <div class="page-header">
             <h2>📋 My Decks</h2>
         </div>
-        <div style="text-align:center;margin-bottom:20px;">
+        <div style="text-align:center;margin-bottom:28px;">
             <button class="btn btn-primary" onclick="window.location.hash='#deck-builder'">+ Create New Deck</button>
         </div>
         <div id="decks-list-grid" class="decks-grid">
@@ -317,7 +447,7 @@
                     </div>
                     <div class="form-group">
                         <label>Hero Class</label>
-                        <select id="deck-hero-class" style="width:100%;padding:10px;background:var(--bg-darkest);border:1px solid var(--border-gold);border-radius:6px;color:var(--text-primary);font-family:inherit;font-size:0.95rem;">
+                        <select id="deck-hero-class">
                             <option value="warrior">⚔️ Warrior</option>
                             <option value="mage">🔮 Mage</option>
                             <option value="ranger">🏹 Ranger</option>
@@ -332,6 +462,111 @@
                     <div id="deck-card-count" class="deck-count"><span>0</span> / 30 cards</div>
                     <div id="deck-card-list">
                         <!-- Deck cards -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS PAGE -->
+    <div id="stats-page" class="page">
+        <div class="page-header">
+            <h2 class="page-title">📊 Statistics</h2>
+            <p class="page-subtitle">Your battle history &amp; performance</p>
+        </div>
+
+        <!-- Overview cards -->
+        <div class="stats-overview-grid" id="stats-overview-grid">
+            <div class="stat-card"><div class="stat-icon">⚔️</div><div class="stat-value" id="stat-games">—</div><div class="stat-label">Games Played</div></div>
+            <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-value stat-value--gold" id="stat-wins">—</div><div class="stat-label">Victories</div></div>
+            <div class="stat-card"><div class="stat-icon">💀</div><div class="stat-value stat-value--red" id="stat-losses">—</div><div class="stat-label">Defeats</div></div>
+            <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value" id="stat-winrate">—</div><div class="stat-label">Win Rate</div></div>
+            <div class="stat-card"><div class="stat-icon">🔄</div><div class="stat-value" id="stat-turns">—</div><div class="stat-label">Avg. Turns</div></div>
+            <div class="stat-card"><div class="stat-icon">🃏</div><div class="stat-value" id="stat-cards-played">—</div><div class="stat-label">Cards Played</div></div>
+        </div>
+
+        <div class="stats-lower-grid">
+            <!-- Streak -->
+            <div class="glass-card">
+                <h3 class="glass-card-title">Current Streak</h3>
+                <div id="stats-streak" class="stats-streak-display"></div>
+            </div>
+
+            <!-- Top cards -->
+            <div class="glass-card">
+                <h3 class="glass-card-title">Most Played Cards</h3>
+                <div id="stats-top-cards" class="stats-top-cards"></div>
+            </div>
+
+            <!-- Class breakdown -->
+            <div class="glass-card">
+                <h3 class="glass-card-title">Class Breakdown</h3>
+                <div id="stats-class-breakdown" class="stats-class-breakdown"></div>
+            </div>
+
+            <!-- Recent games -->
+            <div class="glass-card stats-recent-span">
+                <h3 class="glass-card-title">Recent Games</h3>
+                <div id="stats-recent-games" class="stats-recent-games"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTIONS PAGE -->
+    <div id="options-page" class="page">
+        <div class="page-header">
+            <h2 class="page-title">⚙️ Settings</h2>
+            <p class="page-subtitle">Manage your account &amp; preferences</p>
+        </div>
+
+        <div class="options-layout">
+            <!-- Profile -->
+            <div class="glass-card">
+                <h3 class="glass-card-title">Profile</h3>
+                <form id="profile-form" class="options-form">
+                    <div class="form-group">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" id="options-name" class="form-control" placeholder="Your name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" id="options-email" class="form-control" placeholder="you@example.com">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+
+            <!-- Password -->
+            <div class="glass-card">
+                <h3 class="glass-card-title">Change Password</h3>
+                <form id="password-form" class="options-form">
+                    <div class="form-group">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" id="options-current-pw" class="form-control" placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">New Password</label>
+                        <input type="password" id="options-new-pw" class="form-control" placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" id="options-confirm-pw" class="form-control" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </form>
+            </div>
+
+            <!-- Appearance -->
+            <div class="glass-card">
+                <h3 class="glass-card-title">Appearance</h3>
+                <div class="options-theme-row">
+                    <div>
+                        <div class="options-label">Theme</div>
+                        <div class="options-desc">Switch between dark and light mode</div>
+                    </div>
+                    <div class="theme-toggle" id="theme-toggle">
+                        <button class="theme-btn" data-theme="dark" id="theme-btn-dark">🌙 Dark</button>
+                        <button class="theme-btn" data-theme="light" id="theme-btn-light">☀️ Light</button>
                     </div>
                 </div>
             </div>

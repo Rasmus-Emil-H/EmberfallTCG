@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CardStat;
 use App\Models\Game;
 use App\Services\GameService;
 use Illuminate\Http\Request;
@@ -117,6 +118,14 @@ class GameController extends Controller
 
         $game->game_state = $state;
         $game->save();
+
+        // Track card usage
+        $stat = CardStat::firstOrCreate(
+            ['user_id' => $user->id, 'card_id' => $request->card_id],
+            ['play_count' => 0]
+        );
+        $stat->increment('play_count');
+        $stat->update(['last_played_at' => now()]);
 
         return response()->json(['game' => $game]);
     }

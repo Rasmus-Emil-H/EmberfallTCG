@@ -1,725 +1,517 @@
 /**
- * Realm Wars - Three.js Game Board
+ * Realm Wars - Three.js Game Board (board + heroes only, no hand)
  */
 
 import * as THREE from 'three';
 
-const CARD_W = 0.9;
-const CARD_H = 1.35;
-const CARD_D = 0.04;
+const CARD_W       = 0.9;
+const CARD_H       = 1.35;
+const CARD_D       = 0.04;
 const SLOT_SPACING = 1.1;
-const MAX_BOARD_SLOTS = 7;
+const MAX_SLOTS    = 7;
 
 const CLASS_COLORS = {
-    warrior: 0x6b7280, mage: 0x3b82f6, ranger: 0x22c55e,
-    paladin: 0xfcd34d, druid: 0x10b981, neutral: 0x4b5563,
+    warrior: 0xb45309, mage: 0x3b82f6, ranger: 0x16a34a,
+    paladin: 0xfcd34d, druid: 0x15803d, neutral: 0x6b7280,
 };
 const RARITY_COLORS = {
     common: 0x9ca3af, rare: 0x3b82f6, epic: 0xa855f7, legendary: 0xf59e0b,
 };
 
-/**
- * Creates a simple card mesh for the game board
- */
-function createBoardCardMesh(cardData) {
-    const geo = new THREE.BoxGeometry(CARD_W, CARD_H, CARD_D);
+/* ── card canvas texture ─────────────────────────────────── */
+function makeCardTexture(card) {
+    const W = 192, H = 288;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const c = cv.getContext('2d');
 
-    const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 192;
-    const ctx = canvas.getContext('2d');
+    const cls   = (card.hero_class || 'neutral').toLowerCase();
+    const pHex  = '#' + (CLASS_COLORS[cls]    || 0x6b7280).toString(16).padStart(6,'0');
+    const rHex  = '#' + (RARITY_COLORS[card.rarity] || 0x9ca3af).toString(16).padStart(6,'0');
 
-    const classKey = (cardData.hero_class || 'neutral').toLowerCase();
-    const primaryColor = '#' + (CLASS_COLORS[classKey] || 0x4b5563).toString(16).padStart(6, '0');
+    /* bg */
+    const bg = c.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, '#0c0c1a');
+    bg.addColorStop(1, pHex + '55');
+    c.fillStyle = bg;
+    c.roundRect(0,0,W,H,10); c.fill();
 
-    const grad = ctx.createLinearGradient(0, 0, 128, 192);
-    grad.addColorStop(0, '#0a0a14');
-    grad.addColorStop(1, primaryColor + '66');
-    ctx.fillStyle = grad;
-    ctx.roundRect(0, 0, 128, 192, 8);
-    ctx.fill();
+    /* rarity border */
+    c.strokeStyle = rHex; c.lineWidth = 4;
+    c.shadowColor = rHex; c.shadowBlur = 10;
+    c.roundRect(3,3,W-6,H-6,9); c.stroke();
+    c.shadowBlur = 0;
 
-    const rarityColor = '#' + (RARITY_COLORS[cardData.rarity] || 0x9ca3af).toString(16).padStart(6, '0');
-    ctx.strokeStyle = rarityColor;
-    ctx.lineWidth = 3;
-    ctx.shadowColor = rarityColor;
-    ctx.shadowBlur = 6;
-    ctx.roundRect(2, 2, 124, 188, 7);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
+    /* art area */
+    const art = c.createLinearGradient(0,30,0,130);
+    art.addColorStop(0, pHex + 'cc');
+    art.addColorStop(1, pHex + '33');
+    c.fillStyle = art;
+    c.roundRect(8,28,W-16,96,6); c.fill();
 
-    // Art area
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.roundRect(6, 22, 116, 80, 4);
-    ctx.fill();
+    /* class emoji */
+    const emojis = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
+    c.font = '52px serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(emojis[cls] || '⭐', W/2, 76);
 
-    // Emoji
-    const emojis = { warrior: '⚔️', mage: '🔮', ranger: '🏹', paladin: '🛡️', druid: '🌿', neutral: '⭐' };
-    ctx.font = '40px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(emojis[classKey] || '⭐', 64, 62);
+    /* mana gem */
+    const mg = c.createRadialGradient(22,22,4,22,22,14);
+    mg.addColorStop(0, '#93c5fd'); mg.addColorStop(1, '#1e3a5f');
+    c.fillStyle = mg;
+    c.beginPath(); c.arc(22,22,14,0,Math.PI*2); c.fill();
+    c.strokeStyle = '#60a5fa'; c.lineWidth = 2; c.stroke();
+    c.fillStyle = '#fff'; c.font = 'bold 14px Georgia';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(card.mana_cost, 22, 22);
 
-    // Mana
-    ctx.fillStyle = '#1e3a5f';
-    ctx.strokeStyle = '#3b82f6';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(16, 16, 11, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = '#93c5fd';
-    ctx.font = 'bold 12px Georgia';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(cardData.mana_cost, 16, 16);
+    /* name */
+    /* name band */
+    c.fillStyle = 'rgba(0,0,0,0.65)';
+    c.roundRect(6,128,W-12,22,4); c.fill();
+    c.fillStyle = '#f8fafc'; c.font = 'bold 11px Inter,sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const nm = card.name;
+    c.fillText(nm.length>16 ? nm.slice(0,14)+'…' : nm, W/2, 139);
 
-    // Name
-    ctx.fillStyle = '#e8e0d0';
-    ctx.font = 'bold 9px Georgia';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const name = cardData.name;
-    ctx.fillText(name.length > 13 ? name.substring(0, 11) + '..' : name, 64, 108);
+    /* description */
+    c.fillStyle = '#cbd5e1'; c.font = '9px Inter,sans-serif';
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    const desc = card.description || '';
+    const words = desc.split(' ');
+    let line = '', y = 154;
+    for (const w of words) {
+        const test = line ? line+' '+w : w;
+        if (c.measureText(test).width > W-20) { c.fillText(line, W/2, y); line=w; y+=12; if(y>240) break; }
+        else line = test;
+    }
+    if (line && y<=240) c.fillText(line, W/2, y);
 
-    // Stats
-    if (cardData.card_type !== 'spell') {
-        ctx.fillStyle = '#7f1d1d';
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(18, 174, 12, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#fca5a5';
-        ctx.font = 'bold 11px Georgia';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(cardData.attack ?? 0, 18, 174);
+    /* atk / hp */
+    if (card.card_type !== 'spell') {
+        /* attack */
+        const atkG = c.createRadialGradient(20,H-20,4,20,H-20,14);
+        atkG.addColorStop(0,'#fbbf24'); atkG.addColorStop(1,'#92400e');
+        c.fillStyle = atkG;
+        c.beginPath(); c.arc(20,H-20,14,0,Math.PI*2); c.fill();
+        c.strokeStyle='#f59e0b'; c.lineWidth=2; c.stroke();
+        c.fillStyle='#fff'; c.font='bold 14px Georgia';
+        c.textAlign='center'; c.textBaseline='middle';
+        c.fillText(card.attack??0, 20, H-20);
 
-        ctx.fillStyle = '#14532d';
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(110, 174, 12, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#86efac';
-        ctx.font = 'bold 11px Georgia';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(cardData.health ?? 0, 110, 174);
+        /* health */
+        const hpG = c.createRadialGradient(W-20,H-20,4,W-20,H-20,14);
+        hpG.addColorStop(0,'#f87171'); hpG.addColorStop(1,'#7f1d1d');
+        c.fillStyle = hpG;
+        c.beginPath(); c.arc(W-20,H-20,14,0,Math.PI*2); c.fill();
+        c.strokeStyle='#ef4444'; c.lineWidth=2; c.stroke();
+        c.fillStyle='#fff'; c.font='bold 14px Georgia';
+        c.textAlign='center'; c.textBaseline='middle';
+        c.fillText(card.health??0, W-20, H-20);
     }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    const mat = new THREE.MeshPhongMaterial({ map: texture });
-    const sideMat = new THREE.MeshPhongMaterial({ color: 0x1a1a2e });
-    const mesh = new THREE.Mesh(geo, [sideMat, sideMat, sideMat, sideMat, sideMat, mat]);
+    return new THREE.CanvasTexture(cv);
+}
 
+function makeBoardCard(card) {
+    const geo = new THREE.BoxGeometry(CARD_W, CARD_H, CARD_D);
+    const tex = makeCardTexture(card);
+    const front = new THREE.MeshPhongMaterial({ map: tex });
+    const side  = new THREE.MeshPhongMaterial({ color: 0x1c1c35 });
+    // BoxGeometry face order: +x, -x, +y, -y, +z (front), -z (back)
+    // Camera is at z=9 so the +z face (index 4) faces the viewer
+    const mesh  = new THREE.Mesh(geo, [side,side,side,side,front,side]);
+    mesh.userData.cardId = card.id;
     return mesh;
 }
 
-/**
- * GameBoard - The main 3D game board
- */
+/* ── GameBoard ───────────────────────────────────────────── */
 export class GameBoard {
     constructor(container) {
-        this.container = container;
-        this.playerMeshes = {};
-        this.opponentMeshes = {};
-        this.handMeshes = [];
-        this.selectedCard = null;
-        this.onCardClickCb = null;
+        this.container      = container;
+        this.playerMeshes   = {};   // cardId → mesh (player board)
+        this.opponentMeshes = {};   // cardId → mesh (opponent board)
+        this.selectedAttacker = null;
+        this.onCardClickCb  = null;
         this.onTargetSelectCb = null;
-        this.gameState = null;
-        this.playerId = null;
-        this.opponentId = null;
+        this.gameState      = null;
+        this.playerId       = null;
+        this._rendering     = false;
+        this._dropZoneEl    = document.getElementById('board-drop-zone');
         this._init();
     }
 
+    /* ── setup ───────────────────────────── */
     _init() {
-        const W = this.container.clientWidth;
-        const H = this.container.clientHeight;
+        const W = this.container.clientWidth  || window.innerWidth;
+        const H = this.container.clientHeight || window.innerHeight;
 
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x04040c);
-        this.scene.fog = new THREE.Fog(0x04040c, 15, 30);
+        this.scene.background = new THREE.Color(0x06060f);
+        this.scene.fog = new THREE.FogExp2(0x06060f, 0.035);
 
-        this.camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 100);
-        this.camera.position.set(0, 6, 10);
+        this.camera = new THREE.PerspectiveCamera(50, W/H, 0.1, 100);
+        this.camera.position.set(0, 7, 9);
         this.camera.lookAt(0, 0, 0);
 
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
         this.renderer.setSize(W, H);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
         this.renderer.shadowMap.enabled = true;
         this.container.appendChild(this.renderer.domElement);
 
-        // Lights
-        const ambient = new THREE.AmbientLight(0x334455, 1.5);
-        this.scene.add(ambient);
-
-        const sun = new THREE.DirectionalLight(0xfff5e0, 1.2);
-        sun.position.set(5, 10, 5);
-        sun.castShadow = true;
+        /* lights */
+        this.scene.add(new THREE.AmbientLight(0x3344aa, 1.8));
+        const sun = new THREE.DirectionalLight(0xfff8e8, 1.4);
+        sun.position.set(4, 10, 6); sun.castShadow = true;
         this.scene.add(sun);
-
-        const fill = new THREE.PointLight(0x6b21a8, 0.8, 20);
-        fill.position.set(-5, 3, 2);
+        const fill = new THREE.PointLight(0x7c3aed, 1.2, 18);
+        fill.position.set(-5, 4, 0);
         this.scene.add(fill);
+        const rimLight = new THREE.PointLight(0xf59e0b, 0.6, 12);
+        rimLight.position.set(5, 3, -5);
+        this.scene.add(rimLight);
 
-        // Build board
         this._buildBoard();
-        this._buildHeroZones();
+        this._buildHeroes();
+        this._buildDropHighlight();
 
-        // Raycaster for click
+        /* interaction */
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
-        this._clickHandler = (e) => this._onClick(e);
-        this._mouseMoveHandler = (e) => this._onMouseMove(e);
-        this.renderer.domElement.addEventListener('click', this._clickHandler);
-        this.renderer.domElement.addEventListener('mousemove', this._mouseMoveHandler);
-
-        // Resize
-        this._resizeHandler = () => this._onResize();
-        window.addEventListener('resize', this._resizeHandler);
+        this._clickCb = e => this._onClick(e);
+        this._moveCb  = e => this._onMove(e);
+        this.renderer.domElement.addEventListener('click',     this._clickCb);
+        this.renderer.domElement.addEventListener('mousemove', this._moveCb);
+        this._resizeCb = () => this._onResize();
+        window.addEventListener('resize', this._resizeCb);
 
         this._rendering = true;
-        this._renderLoop();
+        this._loop();
     }
 
     _buildBoard() {
-        // Main board surface
-        const boardGeo = new THREE.BoxGeometry(14, 0.3, 10);
+        const boardGeo = new THREE.BoxGeometry(13, 0.25, 9);
+        const cv = document.createElement('canvas');
+        cv.width=1024; cv.height=512;
+        const c = cv.getContext('2d');
 
-        // Create board texture
-        const canvas = document.createElement('canvas');
-        canvas.width = 1024;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
+        /* dark stone bg */
+        const bg = c.createLinearGradient(0,0,0,512);
+        bg.addColorStop(0,'#0e1520'); bg.addColorStop(.5,'#182030'); bg.addColorStop(1,'#0e1520');
+        c.fillStyle=bg; c.fillRect(0,0,1024,512);
 
-        // Board background
-        const grad = ctx.createLinearGradient(0, 0, 0, 512);
-        grad.addColorStop(0, '#0d1b2a');
-        grad.addColorStop(0.5, '#1a2a3a');
-        grad.addColorStop(1, '#0d1b2a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 1024, 512);
+        /* subtle grid */
+        c.strokeStyle='rgba(245,158,11,0.04)'; c.lineWidth=1;
+        for(let x=0;x<1024;x+=64){c.beginPath();c.moveTo(x,0);c.lineTo(x,512);c.stroke();}
+        for(let y=0;y<512;y+=64){c.beginPath();c.moveTo(0,y);c.lineTo(1024,y);c.stroke();}
 
-        // Center divider
-        ctx.fillStyle = 'rgba(201,168,76,0.3)';
-        ctx.fillRect(0, 248, 1024, 16);
-
-        // Rune circles
-        ctx.strokeStyle = 'rgba(107,33,168,0.3)';
-        ctx.lineWidth = 3;
-        for (let cx of [256, 512, 768]) {
-            ctx.beginPath();
-            ctx.arc(cx, 256, 80, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx, 256, 120, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-
-        // Grid lines
-        ctx.strokeStyle = 'rgba(201,168,76,0.05)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < 1024; x += 64) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, 512);
-            ctx.stroke();
-        }
-        for (let y = 0; y < 512; y += 64) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(1024, y);
-            ctx.stroke();
-        }
-
-        const texture = new THREE.CanvasTexture(canvas);
-        const boardMat = new THREE.MeshPhongMaterial({
-            map: texture,
-            shininess: 20,
+        /* rune circles */
+        [[256,256],[512,256],[768,256]].forEach(([cx,cy])=>{
+            c.strokeStyle='rgba(124,58,237,0.18)'; c.lineWidth=2;
+            c.beginPath(); c.arc(cx,cy,70,0,Math.PI*2); c.stroke();
+            c.beginPath(); c.arc(cx,cy,110,0,Math.PI*2); c.stroke();
         });
-        const board = new THREE.Mesh(boardGeo, boardMat);
-        board.receiveShadow = true;
-        board.position.y = -0.15;
-        this.scene.add(board);
 
-        // Center divider line
-        const dividerGeo = new THREE.BoxGeometry(14, 0.01, 0.08);
-        const dividerMat = new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.5 });
-        const divider = new THREE.Mesh(dividerGeo, dividerMat);
-        divider.position.y = 0.01;
-        this.scene.add(divider);
+        /* center line */
+        c.fillStyle='rgba(245,158,11,0.25)'; c.fillRect(0,246,1024,20);
 
-        // Board border
-        const borderGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(14.1, 0.4, 10.1));
-        const borderMat = new THREE.LineBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.4 });
-        const border = new THREE.LineSegments(borderGeo, borderMat);
-        border.position.y = -0.15;
-        this.scene.add(border);
+        const tex = new THREE.CanvasTexture(cv);
+        const mat = new THREE.MeshPhongMaterial({ map:tex, shininess:15 });
+        const mesh = new THREE.Mesh(boardGeo, mat);
+        mesh.receiveShadow = true;
+        mesh.position.y = -0.125;
+        this.scene.add(mesh);
 
-        // Battle zone slots
-        this._createBattleZoneSlots();
-    }
+        /* gold border */
+        const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(13.1,0.3,9.1));
+        const edgeMat = new THREE.LineBasicMaterial({ color:0xf59e0b, transparent:true, opacity:0.35 });
+        this.scene.add(new THREE.LineSegments(edgeGeo, edgeMat));
 
-    _createBattleZoneSlots() {
-        this.playerSlots = [];
-        this.opponentSlots = [];
+        /* center divider */
+        const divGeo = new THREE.BoxGeometry(13,0.02,0.06);
+        const divMat = new THREE.MeshBasicMaterial({ color:0xf59e0b, transparent:true, opacity:0.45 });
+        const div = new THREE.Mesh(divGeo, divMat);
+        div.position.y = 0.01;
+        this.scene.add(div);
 
-        const slotGeo = new THREE.BoxGeometry(CARD_W + 0.15, 0.02, CARD_H + 0.15);
-        const playerSlotMat = new THREE.MeshBasicMaterial({ color: 0x1e3a5f, transparent: true, opacity: 0.4 });
-        const opponentSlotMat = new THREE.MeshBasicMaterial({ color: 0x5f1e1e, transparent: true, opacity: 0.4 });
-
-        for (let i = 0; i < MAX_BOARD_SLOTS; i++) {
-            const x = (i - (MAX_BOARD_SLOTS - 1) / 2) * SLOT_SPACING;
-
-            const playerSlot = new THREE.Mesh(slotGeo, playerSlotMat);
-            playerSlot.position.set(x, 0.01, 2);
-            this.scene.add(playerSlot);
-            this.playerSlots.push(playerSlot);
-
-            const oppSlot = new THREE.Mesh(slotGeo, opponentSlotMat);
-            oppSlot.position.set(x, 0.01, -2);
-            this.scene.add(oppSlot);
-            this.opponentSlots.push(oppSlot);
+        /* battle slots */
+        this._playerSlots   = [];
+        this._opponentSlots = [];
+        const sGeo = new THREE.BoxGeometry(CARD_W+0.18, 0.02, CARD_H+0.18);
+        const pMat = new THREE.MeshBasicMaterial({ color:0x1e3a5f, transparent:true, opacity:0.35 });
+        const oMat = new THREE.MeshBasicMaterial({ color:0x5f1e1e, transparent:true, opacity:0.35 });
+        for (let i=0; i<MAX_SLOTS; i++) {
+            const x = (i-(MAX_SLOTS-1)/2)*SLOT_SPACING;
+            const ps = new THREE.Mesh(sGeo, pMat);
+            ps.position.set(x,0.01,2); this.scene.add(ps); this._playerSlots.push(ps);
+            const os = new THREE.Mesh(sGeo, oMat);
+            os.position.set(x,0.01,-2); this.scene.add(os); this._opponentSlots.push(os);
         }
     }
 
-    _buildHeroZones() {
-        // Player hero
-        this._buildHero(new THREE.Vector3(0, 0.3, 4.5), false);
-        // Opponent hero
-        this._buildHero(new THREE.Vector3(0, 0.3, -4.5), true);
+    _buildHeroes() {
+        this._buildHeroPad(new THREE.Vector3(0, 0, 4.2), false);
+        this._buildHeroPad(new THREE.Vector3(0, 0, -4.2), true);
     }
 
-    _buildHero(position, isOpponent) {
-        const group = new THREE.Group();
+    /* Simple glowing altar pad — no humanoid figures */
+    _buildHeroPad(pos, isOpp) {
+        const g = new THREE.Group();
 
-        // Platform
-        const platGeo = new THREE.CylinderGeometry(0.9, 1.0, 0.3, 8);
-        const platMat = new THREE.MeshPhongMaterial({
-            color: isOpponent ? 0x5f1e1e : 0x1e3a5f,
-            shininess: 60,
-        });
-        const plat = new THREE.Mesh(platGeo, platMat);
-        group.add(plat);
+        /* flat octagonal base */
+        const baseG = new THREE.CylinderGeometry(1.05, 1.15, 0.12, 8);
+        const baseC = isOpp ? 0x3b0a0a : 0x0a1a3b;
+        const base  = new THREE.Mesh(baseG, new THREE.MeshPhongMaterial({ color:baseC, shininess:80 }));
+        g.add(base);
 
-        // Hero body (simple humanoid silhouette)
-        const bodyGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.8, 8);
-        const bodyMat = new THREE.MeshPhongMaterial({
-            color: isOpponent ? 0x8b2020 : 0x204080,
-            shininess: 40,
-        });
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.position.y = 0.7;
-        group.add(body);
+        /* glowing ring on top */
+        const ringG = new THREE.TorusGeometry(0.9, 0.05, 8, 32);
+        const ringC = isOpp ? 0xef4444 : 0x60a5fa;
+        const ring  = new THREE.Mesh(ringG, new THREE.MeshBasicMaterial({ color:ringC }));
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.07;
+        g.add(ring);
 
-        // Head
-        const headGeo = new THREE.SphereGeometry(0.22, 8, 8);
-        const headMat = new THREE.MeshPhongMaterial({
-            color: isOpponent ? 0xb03030 : 0x3060b0,
-        });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.y = 1.35;
-        group.add(head);
+        /* inner rune disc */
+        const discG = new THREE.CylinderGeometry(0.75, 0.75, 0.02, 32);
+        const discC = isOpp ? 0x7f1d1d : 0x1e3a5f;
+        const disc  = new THREE.Mesh(discG, new THREE.MeshPhongMaterial({ color:discC, shininess:120, emissive:ringC, emissiveIntensity:0.15 }));
+        disc.position.y = 0.07;
+        g.add(disc);
 
-        // HP orb glow
-        const hpGeo = new THREE.SphereGeometry(0.15, 8, 8);
-        const hpMat = new THREE.MeshBasicMaterial({
-            color: isOpponent ? 0xff4444 : 0x44ff44,
-            transparent: true,
-            opacity: 0.8,
-        });
-        const hpOrb = new THREE.Mesh(hpGeo, hpMat);
-        hpOrb.position.set(0.6, 0.3, 0);
-        group.add(hpOrb);
+        /* point light so the pad glows onto the board */
+        const light = new THREE.PointLight(ringC, 0.8, 4);
+        light.position.y = 0.5;
+        g.add(light);
 
-        if (isOpponent) {
-            this.opponentHeroGroup = group;
-            this.opponentHpOrb = hpOrb;
-        } else {
-            this.playerHeroGroup = group;
-            this.playerHpOrb = hpOrb;
-        }
+        g.position.copy(pos);
+        this.scene.add(g);
 
-        group.position.copy(position);
-        this.scene.add(group);
+        /* store group & ring for pulse animation */
+        if (isOpp) { this.opponentHeroGroup = g; this._oppRing = ring; this._oppLight = light; }
+        else        { this.playerHeroGroup  = g; this._plyRing = ring; this._plyLight = light; }
     }
 
-    updateFromGameState(gameState, myPlayerId) {
-        this.gameState = gameState;
-        this.playerId = myPlayerId;
-
-        const playerKeys = Object.keys(gameState.players);
-        this.opponentId = playerKeys.find(k => parseInt(k) !== myPlayerId);
-
-        const myState = gameState.players[String(myPlayerId)];
-        const oppState = gameState.players[this.opponentId];
-
-        if (myState) {
-            this._updateBoardCards(myState.board || [], false);
-            this._updateHandCards(myState.hand || [], myState);
-            this._updateManaDisplay(myState.mana, myState.max_mana);
-            if (this.playerHpOrb) {
-                const hp = myState.hero_hp;
-                this.playerHpOrb.material.color.setHex(hp > 15 ? 0x44ff44 : hp > 8 ? 0xffaa00 : 0xff3333);
-            }
-        }
-
-        if (oppState) {
-            this._updateBoardCards(oppState.board || [], true);
-            if (this.opponentHpOrb) {
-                const hp = oppState.hero_hp;
-                this.opponentHpOrb.material.color.setHex(hp > 15 ? 0x44ff44 : hp > 8 ? 0xffaa00 : 0xff3333);
-            }
-        }
+    /* invisible plane used for drop-zone feedback */
+    _buildDropHighlight() {
+        const geo = new THREE.PlaneGeometry(12, 3.5);
+        const mat = new THREE.MeshBasicMaterial({
+            color: 0x22c55e, transparent:true, opacity:0, side:THREE.DoubleSide
+        });
+        this._dropPlane = new THREE.Mesh(geo, mat);
+        this._dropPlane.rotation.x = -Math.PI/2;
+        this._dropPlane.position.set(0, 0.05, 2);
+        this.scene.add(this._dropPlane);
     }
 
-    _updateBoardCards(boardData, isOpponent) {
-        const existing = isOpponent ? this.opponentMeshes : this.playerMeshes;
-        const slots = isOpponent ? this.opponentSlots : this.playerSlots;
-        const zPos = isOpponent ? -2 : 2;
+    /* ── public API ──────────────────────── */
 
-        // Remove old meshes
-        Object.values(existing).forEach(mesh => {
-            this.scene.remove(mesh);
-            mesh.geometry?.dispose();
-            if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose());
-            else mesh.material?.dispose();
-        });
+    highlightDropZone(on) {
+        if (!this._dropPlane) return;
+        this._dropPlane.material.opacity = on ? 0.18 : 0;
+    }
 
-        if (isOpponent) {
-            this.opponentMeshes = {};
-        } else {
-            this.playerMeshes = {};
-        }
+    updateFromGameState(state, myId) {
+        this.gameState = state;
+        this.playerId  = myId;
+        const oppKey   = Object.keys(state.players).find(k => parseInt(k) !== myId);
+        this.opponentId = oppKey;
 
-        const count = boardData.length;
-        boardData.forEach((cardInfo, i) => {
-            const x = count > 1 ? (i - (count - 1) / 2) * SLOT_SPACING : 0;
+        const my  = state.players[String(myId)];
+        const opp = state.players[oppKey];
 
-            // We need to look up full card data - use stored card data
-            const cardData = cardInfo._cardData || {
-                id: cardInfo.id,
-                name: `Card ${cardInfo.id}`,
-                mana_cost: 0,
-                attack: cardInfo.attack || 0,
-                health: cardInfo.health || 0,
-                card_type: 'minion',
-                rarity: 'common',
-                hero_class: 'neutral',
+        if (my)  this._syncBoard(my.board  || [], false);
+        if (opp) this._syncBoard(opp.board || [], true);
+
+        /* hp orb colours */
+        if (my  && this.playerHpOrb)   this.playerHpOrb.material.color.setHex(
+            my.hero_hp  > 15 ? 0x44ee88 : my.hero_hp  > 8 ? 0xffaa00 : 0xff3333);
+        if (opp && this.opponentHpOrb) this.opponentHpOrb.material.color.setHex(
+            opp.hero_hp > 15 ? 0x44ee88 : opp.hero_hp > 8 ? 0xffaa00 : 0xff3333);
+    }
+
+    _syncBoard(boardData, isOpp) {
+        const map  = isOpp ? this.opponentMeshes : this.playerMeshes;
+        const zPos = isOpp ? -2 : 2;
+
+        /* clear old */
+        Object.values(map).forEach(m => { this.scene.remove(m); this._disposeMesh(m); });
+        if (isOpp) this.opponentMeshes = {};
+        else       this.playerMeshes   = {};
+
+        const n = boardData.length;
+        boardData.forEach((ci, i) => {
+            const card = (window._cardCache && window._cardCache[ci.id]) || {
+                id:ci.id, name:`Card #${ci.id}`, mana_cost:0,
+                attack:ci.attack||0, health:ci.health||0,
+                card_type:'minion', rarity:'common', hero_class:'neutral'
             };
-
-            const mesh = createBoardCardMesh(cardData);
-            mesh.position.set(x, 0.6, zPos);
-            mesh.rotation.x = isOpponent ? 0.2 : -0.2;
-            mesh.userData = { cardId: cardInfo.id, isOpponent, boardIndex: i };
-
-            if (isOpponent) {
-                this.opponentMeshes[cardInfo.id] = mesh;
-            } else {
-                this.playerMeshes[cardInfo.id] = mesh;
-            }
-
+            const mesh = makeBoardCard(card);
+            const x = n>1 ? (i-(n-1)/2)*SLOT_SPACING : 0;
+            // Lay nearly flat — π/2 tilts card horizontal, small offset faces camera
+            const FLAT = -Math.PI / 2 + 0.18;
+            mesh.position.set(x, 0.1, zPos);
+            mesh.rotation.x = isOpp ? -FLAT : FLAT;
+            mesh.userData = { cardId:ci.id, isOpp, boardIndex:i };
+            (isOpp ? this.opponentMeshes : this.playerMeshes)[ci.id] = mesh;
             this.scene.add(mesh);
         });
     }
 
-    _updateHandCards(handIds, playerState) {
-        // Remove old hand meshes
-        this.handMeshes.forEach(m => {
-            this.scene.remove(m);
-            m.geometry?.dispose();
-            if (Array.isArray(m.material)) m.material.forEach(mat => mat.dispose());
-            else m.material?.dispose();
-        });
-        this.handMeshes = [];
+    /* ── attack / death animations ───────── */
 
-        const count = handIds.length;
-        if (count === 0) return;
-
-        const totalWidth = (count - 1) * 1.05;
-
-        handIds.forEach((cardId, i) => {
-            const cardData = this._getCardData(cardId);
-            const mesh = createBoardCardMesh(cardData);
-
-            const x = count > 1 ? -totalWidth / 2 + i * 1.05 : 0;
-            const fanAngle = count > 1 ? (-8 + (16 / (count - 1)) * i) * (Math.PI / 180) : 0;
-
-            mesh.position.set(x, 0.4, 7.5);
-            mesh.rotation.x = -0.7;
-            mesh.rotation.z = fanAngle;
-            mesh.userData = { cardId, isHand: true };
-
-            this.handMeshes.push(mesh);
-            this.scene.add(mesh);
+    attackAnimation(attackerId, targetCardId) {
+        const attacker = this.playerMeshes[attackerId];
+        if (!attacker) return Promise.resolve();
+        const target = targetCardId
+            ? (this.opponentMeshes[targetCardId] || null)
+            : null;
+        const origin = attacker.position.clone();
+        const dest   = target
+            ? target.position.clone()
+            : new THREE.Vector3(0, 0.5, -2);
+        return this._animateTo(attacker, dest, 0.22).then(() => {
+            this._flashImpact(dest);
+            return this._animateTo(attacker, origin, 0.28);
         });
     }
 
-    _updateManaDisplay(mana, maxMana) {
-        // Update DOM-based mana display
-        const manaEl = document.getElementById('game-mana-display');
-        if (manaEl) {
-            manaEl.innerHTML = '';
-            for (let i = 0; i < (maxMana || 0); i++) {
-                const crystal = document.createElement('div');
-                crystal.className = 'mana-crystal ' + (i < mana ? 'full' : 'empty');
-                manaEl.appendChild(crystal);
+    deathAnimation(cardId, isOpp) {
+        const map  = isOpp ? this.opponentMeshes : this.playerMeshes;
+        const mesh = map[cardId]; if (!mesh) return;
+        delete map[cardId];
+        const t0 = performance.now();
+        const origY = mesh.position.y;
+        const tick  = now => {
+            const p = Math.min((now-t0)/600, 1);
+            mesh.position.y = origY - p*2.5;
+            mesh.scale.setScalar(1-p);
+            if (mesh.material) {
+                const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                mats.forEach(m => { m.transparent=true; m.opacity=1-p; });
             }
-        }
-    }
-
-    _getCardData(cardId) {
-        // Try to get from global card cache
-        if (window._cardCache && window._cardCache[cardId]) {
-            return window._cardCache[cardId];
-        }
-        return {
-            id: cardId,
-            name: `Card #${cardId}`,
-            mana_cost: 0,
-            attack: 0,
-            health: 0,
-            card_type: 'minion',
-            rarity: 'common',
-            hero_class: 'neutral',
+            if (p < 1) requestAnimationFrame(tick);
+            else       { this.scene.remove(mesh); this._disposeMesh(mesh); }
         };
+        requestAnimationFrame(tick);
     }
 
-    _onClick(event) {
-        const rect = this.renderer.domElement.getBoundingClientRect();
-        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    /* ── interaction ─────────────────────── */
 
+    _onClick(e) {
+        this._setMouse(e);
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
-        // Check hand cards
-        const handIntersects = this.raycaster.intersectObjects(this.handMeshes);
-        if (handIntersects.length > 0) {
-            const mesh = handIntersects[0].object;
-            const { cardId } = mesh.userData;
-            if (this.onCardClickCb) {
-                this.onCardClickCb(cardId, 'hand');
-            }
-            this._highlightCard(mesh);
+        /* opponent board → target select */
+        const oppList = Object.values(this.opponentMeshes);
+        const oppHit  = this.raycaster.intersectObjects(oppList);
+        if (oppHit.length) {
+            this.onTargetSelectCb?.(oppHit[0].object.userData.cardId, 'minion');
             return;
         }
-
-        // Check opponent board cards (for attack targets)
-        const oppMeshList = Object.values(this.opponentMeshes);
-        const oppIntersects = this.raycaster.intersectObjects(oppMeshList);
-        if (oppIntersects.length > 0) {
-            const mesh = oppIntersects[0].object;
-            const { cardId } = mesh.userData;
-            if (this.onTargetSelectCb) {
-                this.onTargetSelectCb(cardId, 'minion');
-            }
-            return;
-        }
-
-        // Check opponent hero
+        /* opponent hero → hero attack */
         if (this.opponentHeroGroup) {
             const heroMeshes = [];
-            this.opponentHeroGroup.traverse(c => { if (c.isMesh) heroMeshes.push(c); });
-            const heroIntersects = this.raycaster.intersectObjects(heroMeshes);
-            if (heroIntersects.length > 0) {
-                if (this.onTargetSelectCb) {
-                    this.onTargetSelectCb(null, 'hero');
-                }
-                return;
+            this.opponentHeroGroup.traverse(c => { if(c.isMesh) heroMeshes.push(c); });
+            if (this.raycaster.intersectObjects(heroMeshes).length) {
+                this.onTargetSelectCb?.(null, 'hero'); return;
             }
         }
-
-        // Check own board (for attack selection)
-        const ownMeshList = Object.values(this.playerMeshes);
-        const ownIntersects = this.raycaster.intersectObjects(ownMeshList);
-        if (ownIntersects.length > 0) {
-            const mesh = ownIntersects[0].object;
-            const { cardId } = mesh.userData;
-            if (this.onCardClickCb) {
-                this.onCardClickCb(cardId, 'board');
-            }
+        /* own board card → select attacker */
+        const ownList = Object.values(this.playerMeshes);
+        const ownHit  = this.raycaster.intersectObjects(ownList);
+        if (ownHit.length) {
+            this.onCardClickCb?.(ownHit[0].object.userData.cardId, 'board');
         }
     }
 
-    _onMouseMove(event) {
-        const rect = this.renderer.domElement.getBoundingClientRect();
-        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
+    _onMove(e) {
+        this._setMouse(e);
         this.raycaster.setFromCamera(this.mouse, this.camera);
-
-        // Hover on hand cards
-        this.handMeshes.forEach(mesh => {
-            const intersects = this.raycaster.intersectObject(mesh);
-            if (intersects.length > 0) {
-                mesh.position.y = 0.8; // lift on hover
-            } else {
-                mesh.position.y = 0.4; // back to normal
-            }
+        /* hover: lift card straight up off the board */
+        [...Object.values(this.playerMeshes), ...Object.values(this.opponentMeshes)].forEach(m => {
+            const hit = this.raycaster.intersectObject(m).length > 0;
+            m.position.y = hit ? 0.55 : 0.1;
         });
     }
 
-    _highlightCard(mesh) {
-        if (this.selectedCardMesh) {
-            this.selectedCardMesh.material?.forEach?.(m => {
-                if (m.emissive) m.emissive.setHex(0x000000);
-            });
-        }
-        this.selectedCardMesh = mesh;
+    _setMouse(e) {
+        const r = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x =  ((e.clientX - r.left) / r.width)  * 2 - 1;
+        this.mouse.y = -((e.clientY - r.top)  / r.height) * 2 + 1;
     }
 
-    playCard(cardData, boardSlotIndex) {
-        // Animate card from hand to board
-        const cardInHand = this.handMeshes.find(m => m.userData.cardId === cardData.id);
-        if (!cardInHand) return;
+    onCardClick(cb)    { this.onCardClickCb    = cb; }
+    onTargetSelect(cb) { this.onTargetSelectCb = cb; }
 
-        const targetX = (boardSlotIndex - 3) * SLOT_SPACING;
-        this._animateTo(cardInHand, new THREE.Vector3(targetX, 0.6, 2), 0.6);
-    }
+    /* ── helpers ─────────────────────────── */
 
-    attackAnimation(attackerCardId, targetCardId) {
-        const attacker = this.playerMeshes[attackerCardId];
-        if (!attacker) return;
-
-        let target;
-        if (targetCardId) {
-            target = this.opponentMeshes[targetCardId];
-        }
-
-        const originalPos = attacker.position.clone();
-        const targetPos = target
-            ? target.position.clone()
-            : new THREE.Vector3(0, 0.5, -2); // hero position
-
-        // Lunge forward
-        this._animateTo(attacker, targetPos, 0.2).then(() => {
-            // Flash impact
-            this._flashImpact(targetPos);
-            // Return
-            this._animateTo(attacker, originalPos, 0.3);
-        });
-    }
-
-    deathAnimation(cardId, isOpponent) {
-        const meshMap = isOpponent ? this.opponentMeshes : this.playerMeshes;
-        const mesh = meshMap[cardId];
-        if (!mesh) return;
-
-        const startTime = performance.now();
-        const duration = 600;
-        const originalY = mesh.position.y;
-        const originalScale = mesh.scale.clone();
-
-        const animate = (now) => {
-            const progress = Math.min((now - startTime) / duration, 1);
-            mesh.position.y = originalY - progress * 2;
-            mesh.scale.setScalar(1 - progress);
-            mesh.material?.forEach?.((m) => {
-                if (m.transparent) m.opacity = 1 - progress;
-            });
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                this.scene.remove(mesh);
-                mesh.geometry?.dispose();
-            }
+    _flashImpact(pos) {
+        const geo = new THREE.SphereGeometry(0.28, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color:0xf59e0b, transparent:true, opacity:0.9 });
+        const f   = new THREE.Mesh(geo, mat);
+        f.position.copy(pos);
+        this.scene.add(f);
+        const t0 = performance.now();
+        const tick = now => {
+            const p = Math.min((now-t0)/350, 1);
+            f.scale.setScalar(1+p*2.5);
+            f.material.opacity = 0.9*(1-p);
+            if (p<1) requestAnimationFrame(tick);
+            else { this.scene.remove(f); geo.dispose(); mat.dispose(); }
         };
-        requestAnimationFrame(animate);
-
-        delete meshMap[cardId];
+        requestAnimationFrame(tick);
     }
 
-    _flashImpact(position) {
-        const geo = new THREE.SphereGeometry(0.3, 8, 8);
-        const mat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.8 });
-        const flash = new THREE.Mesh(geo, mat);
-        flash.position.copy(position);
-        this.scene.add(flash);
-
-        const start = performance.now();
-        const animate = (now) => {
-            const progress = Math.min((now - start) / 300, 1);
-            flash.scale.setScalar(1 + progress * 2);
-            flash.material.opacity = 0.8 * (1 - progress);
-            if (progress < 1) requestAnimationFrame(animate);
-            else {
-                this.scene.remove(flash);
-                flash.geometry.dispose();
-                flash.material.dispose();
-            }
-        };
-        requestAnimationFrame(animate);
-    }
-
-    _animateTo(mesh, target, duration) {
-        return new Promise(resolve => {
-            const start = mesh.position.clone();
-            const startTime = performance.now();
-            const ms = duration * 1000;
-
-            const animate = (now) => {
-                const progress = Math.min((now - startTime) / ms, 1);
-                const eased = 1 - Math.pow(1 - progress, 2);
-                mesh.position.lerpVectors(start, target, eased);
-                if (progress < 1) requestAnimationFrame(animate);
-                else resolve();
+    _animateTo(mesh, target, sec) {
+        return new Promise(res => {
+            const src = mesh.position.clone();
+            const t0  = performance.now();
+            const ms  = sec * 1000;
+            const tick = now => {
+                const p = Math.min((now-t0)/ms, 1);
+                const e = 1 - Math.pow(1-p, 3);
+                mesh.position.lerpVectors(src, target, e);
+                if (p<1) requestAnimationFrame(tick); else res();
             };
-            requestAnimationFrame(animate);
+            requestAnimationFrame(tick);
         });
     }
 
-    _renderLoop() {
+    _disposeMesh(m) {
+        m.geometry?.dispose();
+        const mats = Array.isArray(m.material) ? m.material : [m.material];
+        mats.forEach(mt => { mt?.map?.dispose(); mt?.dispose(); });
+    }
+
+    /* ── render loop ─────────────────────── */
+
+    _loop() {
         if (!this._rendering) return;
-        requestAnimationFrame(() => this._renderLoop());
-
-        const now = performance.now();
-
-        // Subtle camera bob
-        this.camera.position.y = 6 + Math.sin(now * 0.0005) * 0.1;
-
-        // Animate hero glows
-        if (this.playerHeroGroup) {
-            this.playerHeroGroup.rotation.y = Math.sin(now * 0.001) * 0.05;
-        }
-        if (this.opponentHeroGroup) {
-            this.opponentHeroGroup.rotation.y = Math.sin(now * 0.001 + 1) * 0.05;
-        }
-
+        requestAnimationFrame(() => this._loop());
+        const t = performance.now();
+        /* subtle ring pulse on hero pads */
+        if (this._plyLight)  this._plyLight.intensity  = 0.8 + Math.sin(t*0.002)*0.25;
+        if (this._oppLight)  this._oppLight.intensity  = 0.8 + Math.sin(t*0.002+1)*0.25;
         this.renderer.render(this.scene, this.camera);
     }
 
     _onResize() {
         if (!this.container || !this.renderer) return;
-        const W = this.container.clientWidth;
-        const H = this.container.clientHeight;
+        const W = this.container.clientWidth  || window.innerWidth;
+        const H = this.container.clientHeight || window.innerHeight;
         this.camera.aspect = W / H;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(W, H);
     }
 
-    onCardClick(callback) {
-        this.onCardClickCb = callback;
-    }
-
-    onTargetSelect(callback) {
-        this.onTargetSelectCb = callback;
-    }
-
     destroy() {
         this._rendering = false;
-        window.removeEventListener('resize', this._resizeHandler);
-        this.renderer.domElement.removeEventListener('click', this._clickHandler);
-        this.renderer.domElement.removeEventListener('mousemove', this._mouseMoveHandler);
+        window.removeEventListener('resize', this._resizeCb);
+        this.renderer.domElement.removeEventListener('click',     this._clickCb);
+        this.renderer.domElement.removeEventListener('mousemove', this._moveCb);
         this.renderer.dispose();
-        if (this.renderer.domElement.parentNode) {
-            this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
-        }
+        this.renderer.domElement.parentNode?.removeChild(this.renderer.domElement);
     }
 }

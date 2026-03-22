@@ -41,8 +41,8 @@ class UIManager {
     }
 
     showPage(pageName) {
-        // Hide all pages
-        Object.values(this.pages).forEach(p => p.classList.remove('active'));
+        // Always query live DOM so we never miss a page
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 
         const target = document.getElementById(pageName + '-page') || document.getElementById(pageName);
         if (target) {
@@ -97,46 +97,37 @@ class UIManager {
 
     createCardElement(card, options = {}) {
         const div = document.createElement('div');
-        div.className = `game-card rarity-${card.rarity}`;
-        div.dataset.cardId = card.id;
+        div.className = `card-item`;
+        div.dataset.cardId  = card.id;
+        div.dataset.rarity  = card.rarity;
 
-        const classKey = (card.hero_class || 'neutral').toLowerCase();
+        const classKey   = (card.hero_class || 'neutral').toLowerCase();
         const classEmoji = CLASS_EMOJI[classKey] || '⭐';
+        const isMinion   = card.card_type !== 'spell';
 
-        let statsHtml = '';
-        if (card.card_type === 'minion' || card.card_type === 'weapon') {
-            statsHtml = `
-                <div class="card-stats">
-                    <div class="card-attack">${card.attack ?? 0}</div>
-                    <div class="card-rarity-gem ${card.rarity}"></div>
-                    <div class="card-health">${card.health ?? 0}</div>
-                </div>
-            `;
-        } else {
-            statsHtml = `
-                <div class="card-stats" style="justify-content:center">
-                    <div class="card-rarity-gem ${card.rarity}"></div>
-                </div>
-            `;
-        }
+        const rarityLabel = { common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary' };
 
-        if (options.quantity !== undefined) {
-            div.innerHTML += `<div class="card-quantity-badge">x${options.quantity}</div>`;
-        }
-
-        div.innerHTML += `
+        div.innerHTML = `
+            ${options.quantity !== undefined ? `<div class="card-quantity-badge">×${options.quantity}</div>` : ''}
             <div class="card-mana">${card.mana_cost}</div>
+            <div class="card-name-row">
+                <div class="card-name">${card.name}</div>
+            </div>
             <div class="card-art class-${classKey}">${classEmoji}</div>
-            <div class="card-name">${card.name}</div>
-            <div class="card-type-badge">${card.card_type} · ${card.rarity}</div>
+            <div class="card-type-banner">
+                <span class="card-type-text">${card.card_type} · ${rarityLabel[card.rarity] || card.rarity}</span>
+            </div>
             <div class="card-desc">${card.description || ''}</div>
-            ${statsHtml}
+            ${isMinion ? `
+            <div class="card-stats-row">
+                <div class="card-attack">${card.attack ?? 0}</div>
+                <div class="card-health">${card.health ?? 0}</div>
+            </div>` : '<div class="card-stats-row"></div>'}
         `;
 
-        // Tooltip
         div.addEventListener('mouseenter', (e) => this.showCardTooltip(card, e));
-        div.addEventListener('mousemove', (e) => this.moveCardTooltip(e));
-        div.addEventListener('mouseleave', () => this.hideCardTooltip());
+        div.addEventListener('mousemove',  (e) => this.moveCardTooltip(e));
+        div.addEventListener('mouseleave', ()  => this.hideCardTooltip());
 
         if (options.onClick) {
             div.addEventListener('click', () => options.onClick(card, div));
