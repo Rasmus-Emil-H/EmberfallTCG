@@ -25,6 +25,7 @@ export class GameManager {
         this.selectedAttacker  = null;   // cardId on player board
         this.phase             = 'idle'; // idle | selecting_target
         this._gameOverShown    = false;
+        this._gameOverOverlay  = null;
         this._prevActivePlayer = null;
         this._myLog            = [];     // { icon, name, desc, mana, turn } entries
         this._oppLog           = [];
@@ -761,16 +762,58 @@ export class GameManager {
         const win = gameData.winner_id === this.playerId;
         const overlay = document.createElement('div');
         overlay.className = 'game-over-overlay';
+
+        const rankRowId = 'game-over-rank-row';
         overlay.innerHTML = `
             <div class="game-over-card">
                 <div class="game-over-result ${win ? 'victory' : 'defeat'}">${win ? '⚔ VICTORY!' : '💀 DEFEAT'}</div>
                 <p>${win ? 'You have conquered the realm!' : 'Better luck next battle, champion.'}</p>
+                <div id="${rankRowId}" class="game-over-rank-row">⏳ Updating rank…</div>
                 <div class="game-over-actions">
-                    <button class="btn btn-primary" onclick="window.location.hash='#home'">Return Home</button>
-                    <button class="btn btn-ghost"   onclick="window.location.hash='#game'">Play Again</button>
+                    <button class="btn btn-primary" id="go-btn-home">Return Home</button>
+                    <button class="btn btn-ghost"   id="go-btn-again">Play Again</button>
                 </div>
             </div>`;
+        this._gameOverOverlay = overlay;
         document.body.appendChild(overlay);
+
+        overlay.querySelector('#go-btn-home').addEventListener('click', () => {
+            this.destroy();
+            window.location.hash = '#home';
+        });
+        overlay.querySelector('#go-btn-again').addEventListener('click', () => {
+            this.destroy();
+            window.location.hash = '#game';
+        });
+
+        // Fetch updated rank
+        api.getMe().then(user => {
+            const row = document.getElementById(rankRowId);
+            if (!row || !user.rank) return;
+            const r = user.rank;
+            const stars = r.tier === 'Legend' ? '★★★' : ['☆','☆','☆'].map((s,i) => i < r.stars ? '★' : '☆').join('');
+            row.innerHTML = `<span style="color:${r.color}">${r.emoji} ${r.label}</span> <span class="gorr-stars">${stars}</span>`;
+            if (win) this._showRankToast(r);
+        }).catch(() => {
+            const row = document.getElementById(rankRowId);
+            if (row) row.textContent = '';
+        });
+    }
+
+    _showRankToast(rank) {
+        const toast = document.createElement('div');
+        toast.className = 'rank-up-toast';
+        toast.style.setProperty('--rank-color', rank.color);
+        toast.innerHTML = `
+            <div class="rank-up-emoji">${rank.emoji}</div>
+            <div class="rank-up-title">${rank.label}</div>
+            <div class="rank-up-label">+1 Star earned!</div>`;
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('visible'));
+        setTimeout(() => {
+            toast.classList.remove('visible');
+            setTimeout(() => toast.remove(), 400);
+        }, 2200);
     }
 
     /* ── cleanup ─────────────────────────────────── */
@@ -778,6 +821,8 @@ export class GameManager {
     destroy() {
         clearInterval(this.pollInterval);
         clearInterval(this.matchPollInterval);
+        this._gameOverOverlay?.remove();
+        this._gameOverOverlay = null;
     }
 }
 

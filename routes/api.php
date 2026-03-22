@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\CardAdminController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\PackAdminController;
+use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\DeckController;
@@ -39,6 +43,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/decks/{deck}', [DeckController::class, 'show']);
     Route::put('/decks/{deck}', [DeckController::class, 'update']);
     Route::delete('/decks/{deck}', [DeckController::class, 'destroy']);
+
+    // Admin
+    Route::middleware('admin')->prefix('admin')->group(function () {
+        Route::get('/dashboard',      [DashboardController::class,  'index']);
+        Route::get('/cards',          [CardAdminController::class,  'index']);
+        Route::post('/cards',         [CardAdminController::class,  'store']);
+        Route::put('/cards/{card}',   [CardAdminController::class,  'update']);
+        Route::delete('/cards/{card}',[CardAdminController::class,  'destroy']);
+        Route::get('/users',          [UserAdminController::class,  'index']);
+        Route::put('/users/{user}',   [UserAdminController::class,  'update']);
+        Route::delete('/users/{user}',[UserAdminController::class,  'destroy']);
+        Route::get('/packs',          [PackAdminController::class,  'index']);
+        Route::post('/packs',         [PackAdminController::class,  'store']);
+        Route::put('/packs/{pack}',   [PackAdminController::class,  'update']);
+        Route::delete('/packs/{pack}',[PackAdminController::class,  'destroy']);
+    });
 
     // Game
     Route::post('/game/queue', [GameController::class, 'joinQueue']);

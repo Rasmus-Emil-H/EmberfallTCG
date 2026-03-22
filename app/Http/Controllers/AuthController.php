@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\RankService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -64,7 +65,14 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        $user  = $request->user()->load('roles');
+        $rank  = (new RankService())->getRankDisplay($user->rank_points ?? 0);
+        $roles = $user->roles->pluck('name')->toArray();
+        return response()->json(array_merge($user->toArray(), [
+            'rank'     => $rank,
+            'roles'    => $roles,
+            'is_admin' => in_array('admin', $roles),
+        ]));
     }
 
     public function updateProfile(Request $request)

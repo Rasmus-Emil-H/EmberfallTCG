@@ -13,7 +13,17 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'gold'];
+    protected $fillable = ['name', 'email', 'password', 'gold', 'rank_points', 'win_streak'];
+
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles')->withPivot('assigned_at');
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->roles()->where('name', $role)->exists();
+    }
 
     protected $hidden = ['password', 'remember_token'];
 

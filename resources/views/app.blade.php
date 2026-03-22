@@ -16,6 +16,13 @@
         }
     }
     </script>
+    <script>
+    window.APP_DATA = {!! json_encode([
+        'packs'       => $packs,
+        'heroClasses' => $heroClasses,
+        'rarities'    => $rarities,
+    ]) !!};
+    </script>
 </head>
 <body>
 
@@ -36,6 +43,7 @@
         <a href="#" class="nav-link" data-page="game" data-auth="required">Play</a>
         <a href="#" class="nav-link" data-page="stats" data-auth="required">Stats</a>
         <a href="#" class="nav-link" data-page="options" data-auth="required">⚙️</a>
+        <a href="#" class="nav-link nav-link--admin" data-page="admin" data-auth="admin" style="display:none">🛡️ Admin</a>
         <a href="#" class="nav-link" data-page="login" data-auth="guest">Login</a>
         <a href="#" class="nav-link" data-page="register" data-auth="guest">Register</a>
         <button id="logout-btn" data-auth="required">Logout</button>
@@ -124,7 +132,7 @@
                     <span class="rank-progress-text" id="rank-progress-text">0 / 30 stars to Silver</span>
                 </div>
             </div>
-            <a href="#" class="btn btn-primary rank-hero-play" data-page="game">⚔️ Play Ranked</a>
+            <a href="#game" class="btn btn-primary rank-hero-play">⚔️ Play Ranked</a>
         </div>
 
         <div class="dashboard-grid">
@@ -189,7 +197,24 @@
         </div>
 
         <div id="shop-packs-grid" class="shop-grid">
-            <!-- Packs rendered by JS -->
+            @foreach($packs as $pack)
+            @php
+                $emoji = str_contains(strtolower($pack->name),'legendary') ? '✨' : (str_contains(strtolower($pack->name),'arcane') ? '🔮' : '📦');
+                $artClass = str_contains(strtolower($pack->name),'legendary') ? 'legendary' : (str_contains(strtolower($pack->name),'arcane') ? 'arcane' : 'starter');
+                $setLabels = ['realm_wars_core'=>'Core Set','arcane_collection'=>'Arcane Collection','legendary_trove'=>'Legendary Trove'];
+                $setLabel = $setLabels[$pack->set_name] ?? $pack->set_name;
+            @endphp
+            <div class="pack-card shop-pack-card"
+                 data-pack-id="{{ $pack->id }}"
+                 data-pack-price="{{ $pack->price }}"
+                 data-pack-name="{{ e($pack->name) }}">
+                <div class="pack-art {{ $artClass }}">{{ $emoji }}</div>
+                <div class="pack-name">{{ $pack->name }}</div>
+                <div class="pack-desc">{{ $pack->card_count }} cards per pack · {{ $setLabel }}</div>
+                <div class="pack-price">{{ $pack->price }} <span>Gold</span></div>
+                <button class="btn btn-primary btn-sm shop-buy-btn" data-pack-id="{{ $pack->id }}">Open Pack</button>
+            </div>
+            @endforeach
         </div>
     </div>
 
@@ -203,21 +228,17 @@
         <div class="collection-filters">
             <span style="color:var(--text-secondary);font-size:0.8rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">Rarity:</span>
             <button class="filter-btn collection-filter-rarity active" data-rarity="all">All</button>
-            <button class="filter-btn collection-filter-rarity rarity-common" data-rarity="common">Common</button>
-            <button class="filter-btn collection-filter-rarity rarity-rare" data-rarity="rare">Rare</button>
-            <button class="filter-btn collection-filter-rarity rarity-epic" data-rarity="epic">Epic</button>
-            <button class="filter-btn collection-filter-rarity rarity-legendary" data-rarity="legendary">Legendary</button>
+            @foreach($rarities as $rarity)
+            <button class="filter-btn collection-filter-rarity rarity-{{ $rarity }}" data-rarity="{{ $rarity }}">{{ ucfirst($rarity) }}</button>
+            @endforeach
         </div>
 
         <div class="collection-filters">
             <span style="color:var(--text-secondary);font-size:0.8rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;">Class:</span>
             <button class="filter-btn collection-filter-class active" data-class="all">All</button>
-            <button class="filter-btn collection-filter-class" data-class="warrior">⚔️ Warrior</button>
-            <button class="filter-btn collection-filter-class" data-class="mage">🔮 Mage</button>
-            <button class="filter-btn collection-filter-class" data-class="ranger">🏹 Ranger</button>
-            <button class="filter-btn collection-filter-class" data-class="paladin">🛡️ Paladin</button>
-            <button class="filter-btn collection-filter-class" data-class="druid">🌿 Druid</button>
-            <button class="filter-btn collection-filter-class" data-class="neutral">⭐ Neutral</button>
+            @foreach($heroClasses as $cls)
+            <button class="filter-btn collection-filter-class" data-class="{{ $cls['key'] }}">{{ $cls['emoji'] }} {{ ucfirst($cls['key']) }}</button>
+            @endforeach
         </div>
 
         <div id="collection-cards-grid" class="cards-grid">
@@ -235,7 +256,17 @@
 
             <div class="pack-selection">
                 <div id="pack-selection-grid" class="pack-selection-grid">
-                    <!-- Packs rendered by JS -->
+                    @foreach($packs as $pack)
+                    @php $emoji = str_contains(strtolower($pack->name),'legendary') ? '✨' : (str_contains(strtolower($pack->name),'arcane') ? '🔮' : '📦'); @endphp
+                    <div class="pack-option"
+                         data-pack-id="{{ $pack->id }}"
+                         data-pack-price="{{ $pack->price }}"
+                         data-pack-name="{{ e($pack->name) }}">
+                        <div class="pack-emoji">{{ $emoji }}</div>
+                        <div class="pack-option-name">{{ $pack->name }}</div>
+                        <div class="pack-option-price">{{ $pack->price }} Gold</div>
+                    </div>
+                    @endforeach
                 </div>
             </div>
 
@@ -421,11 +452,9 @@
             <div class="deck-builder-cards">
                 <div class="collection-filters" style="margin-bottom:15px;">
                     <button class="filter-btn deck-filter-class active" data-class="all">All</button>
-                    <button class="filter-btn deck-filter-class" data-class="warrior">⚔️ Warrior</button>
-                    <button class="filter-btn deck-filter-class" data-class="mage">🔮 Mage</button>
-                    <button class="filter-btn deck-filter-class" data-class="ranger">🏹 Ranger</button>
-                    <button class="filter-btn deck-filter-class" data-class="paladin">🛡️ Paladin</button>
-                    <button class="filter-btn deck-filter-class" data-class="druid">🌿 Druid</button>
+                    @foreach($heroClasses->reject(fn($c) => $c['key'] === 'neutral') as $cls)
+                    <button class="filter-btn deck-filter-class" data-class="{{ $cls['key'] }}">{{ $cls['emoji'] }} {{ ucfirst($cls['key']) }}</button>
+                    @endforeach
                 </div>
                 <div id="deck-builder-cards-grid" class="cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));">
                     <!-- Cards -->
@@ -442,11 +471,9 @@
                     <div class="form-group">
                         <label>Hero Class</label>
                         <select id="deck-hero-class">
-                            <option value="warrior">⚔️ Warrior</option>
-                            <option value="mage">🔮 Mage</option>
-                            <option value="ranger">🏹 Ranger</option>
-                            <option value="paladin">🛡️ Paladin</option>
-                            <option value="druid">🌿 Druid</option>
+                            @foreach($heroClasses->reject(fn($c) => $c['key'] === 'neutral') as $cls)
+                            <option value="{{ $cls['key'] }}">{{ $cls['emoji'] }} {{ ucfirst($cls['key']) }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <button id="save-deck-btn" class="btn btn-primary" style="width:100%;">Save Deck</button>
@@ -516,6 +543,24 @@
                 <h3 class="glass-card-title">Recent Games</h3>
                 <div id="stats-recent-games" class="stats-recent-games"></div>
             </div>
+
+            <!-- Rank ladder -->
+            <div class="glass-card stats-rank-span">
+                <h3 class="glass-card-title">Rank Ladder</h3>
+                <div class="rank-ladder-list">
+                    @foreach($rankTiers as $tier)
+                    <div class="rank-ladder-row" style="--rank-color:{{ $tier['color'] }}">
+                        <span class="rlr-emoji">{{ $tier['emoji'] }}</span>
+                        <span class="rlr-name">{{ $tier['name'] }}</span>
+                        @if($tier['name'] !== 'Legend')
+                        <span class="rlr-range">Ranks 10–1 · 30 stars</span>
+                        @else
+                        <span class="rlr-range">Top of the ladder</span>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+            </div>
         </div>
     </div>
 
@@ -576,6 +621,156 @@
                         <button class="theme-btn" data-theme="light" id="theme-btn-light">☀️ Light</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN PAGE -->
+    <div id="admin-page" class="page">
+        <div class="page-header">
+            <h2 class="page-title">🛡️ Admin Panel</h2>
+            <p class="page-subtitle">Manage the realm</p>
+        </div>
+
+        <!-- Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab active" data-tab="dashboard">📊 Dashboard</button>
+            <button class="admin-tab" data-tab="cards">🃏 Cards</button>
+            <button class="admin-tab" data-tab="users">👥 Users</button>
+            <button class="admin-tab" data-tab="packs">📦 Packs</button>
+        </div>
+
+        <!-- Dashboard tab -->
+        <div class="admin-panel active" id="admin-tab-dashboard">
+            <div class="admin-stats-grid" id="admin-stats-grid">
+                <!-- filled by JS -->
+            </div>
+            <div class="admin-two-col">
+                <div class="glass-card">
+                    <h3 class="glass-card-title">Recent Users</h3>
+                    <div id="admin-recent-users"></div>
+                </div>
+                <div class="glass-card">
+                    <h3 class="glass-card-title">Recent Games</h3>
+                    <div id="admin-recent-games"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cards tab -->
+        <div class="admin-panel" id="admin-tab-cards">
+            <div class="admin-toolbar">
+                <input type="text" id="admin-card-search" class="admin-search" placeholder="Search cards…">
+                <button class="btn btn-primary btn-sm" id="admin-card-new-btn">+ New Card</button>
+            </div>
+            <!-- Create / Edit form -->
+            <div class="admin-form-card glass-card" id="admin-card-form-wrap" style="display:none">
+                <h3 class="glass-card-title" id="admin-card-form-title">New Card</h3>
+                <form id="admin-card-form" class="admin-form-grid">
+                    <div class="form-group"><label>Name</label><input name="name" class="form-control" required></div>
+                    <div class="form-group"><label>Mana Cost</label><input name="mana_cost" type="number" min="0" max="20" class="form-control" required></div>
+                    <div class="form-group"><label>Type</label>
+                        <select name="card_type" class="form-control">
+                            <option value="minion">Minion</option>
+                            <option value="spell">Spell</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Class</label>
+                        <select name="hero_class" class="form-control">
+                            @foreach($heroClasses as $cls)
+                            <option value="{{ $cls['key'] }}">{{ $cls['emoji'] }} {{ ucfirst($cls['key']) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Rarity</label>
+                        <select name="rarity" class="form-control">
+                            @foreach($rarities as $rarity)
+                            <option value="{{ $rarity }}">{{ ucfirst($rarity) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group admin-card-stats" id="admin-card-stats-group">
+                        <label>Attack</label><input name="attack" type="number" min="0" class="form-control" value="0">
+                    </div>
+                    <div class="form-group admin-card-stats" id="admin-card-health-group">
+                        <label>Health</label><input name="health" type="number" min="1" class="form-control" value="1">
+                    </div>
+                    <div class="form-group" style="grid-column:1/-1"><label>Description</label><textarea name="description" class="form-control" rows="2"></textarea></div>
+                    <div class="form-group" style="grid-column:1/-1"><label>Flavor Text</label><input name="flavor_text" class="form-control"></div>
+                    <div class="admin-form-actions" style="grid-column:1/-1">
+                        <button type="submit" class="btn btn-primary" id="admin-card-submit">Save Card</button>
+                        <button type="button" class="btn btn-ghost" id="admin-card-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div class="admin-table-wrap">
+                <table class="admin-table" id="admin-cards-table">
+                    <thead><tr><th>Name</th><th>Class</th><th>Type</th><th>Rarity</th><th>Mana</th><th>ATK/HP</th><th></th></tr></thead>
+                    <tbody id="admin-cards-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Users tab -->
+        <div class="admin-panel" id="admin-tab-users">
+            <div class="admin-toolbar">
+                <input type="text" id="admin-user-search" class="admin-search" placeholder="Search users…">
+            </div>
+            <div class="admin-table-wrap">
+                <table class="admin-table" id="admin-users-table">
+                    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Gold</th><th>Rank</th><th>Roles</th><th></th></tr></thead>
+                    <tbody id="admin-users-tbody"></tbody>
+                </table>
+            </div>
+            <!-- User edit modal -->
+            <div class="admin-modal-overlay" id="admin-user-modal" style="display:none">
+                <div class="admin-modal glass-card">
+                    <h3 class="glass-card-title">Edit User</h3>
+                    <form id="admin-user-form" class="admin-form-grid">
+                        <input type="hidden" name="id">
+                        <div class="form-group"><label>Name</label><input name="name" class="form-control" required></div>
+                        <div class="form-group"><label>Email</label><input name="email" type="email" class="form-control" required></div>
+                        <div class="form-group"><label>Gold</label><input name="gold" type="number" min="0" class="form-control"></div>
+                        <div class="form-group"><label>Rank Points</label><input name="rank_points" type="number" min="0" class="form-control"></div>
+                        <div class="form-group" style="grid-column:1/-1">
+                            <label>Roles</label>
+                            <div class="admin-role-checks">
+                                <label class="admin-role-check"><input type="checkbox" name="role_admin" value="admin"> Administrator</label>
+                                <label class="admin-role-check"><input type="checkbox" name="role_moderator" value="moderator"> Moderator</label>
+                            </div>
+                        </div>
+                        <div class="admin-form-actions" style="grid-column:1/-1">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" class="btn btn-ghost" id="admin-user-cancel">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Packs tab -->
+        <div class="admin-panel" id="admin-tab-packs">
+            <div class="admin-toolbar">
+                <button class="btn btn-primary btn-sm" id="admin-pack-new-btn">+ New Pack</button>
+            </div>
+            <div class="admin-form-card glass-card" id="admin-pack-form-wrap" style="display:none">
+                <h3 class="glass-card-title" id="admin-pack-form-title">New Pack</h3>
+                <form id="admin-pack-form" class="admin-form-grid">
+                    <div class="form-group"><label>Name</label><input name="name" class="form-control" required></div>
+                    <div class="form-group"><label>Price (Gold)</label><input name="price" type="number" min="0" class="form-control" required></div>
+                    <div class="form-group"><label>Cards Per Pack</label><input name="card_count" type="number" min="1" max="20" class="form-control" required></div>
+                    <div class="form-group"><label>Set Name (slug)</label><input name="set_name" class="form-control" required placeholder="e.g. core_set"></div>
+                    <div class="admin-form-actions" style="grid-column:1/-1">
+                        <button type="submit" class="btn btn-primary" id="admin-pack-submit">Save Pack</button>
+                        <button type="button" class="btn btn-ghost" id="admin-pack-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            <div class="admin-table-wrap">
+                <table class="admin-table" id="admin-packs-table">
+                    <thead><tr><th>Name</th><th>Set</th><th>Price</th><th>Cards</th><th>Times Opened</th><th></th></tr></thead>
+                    <tbody id="admin-packs-tbody"></tbody>
+                </table>
             </div>
         </div>
     </div>

@@ -263,6 +263,12 @@ class RealmWarsApp {
 
         ui.setNavVisibility(auth.isLoggedIn());
 
+        // Keep nav rank + admin link current
+        const cachedUser = auth.getUser();
+        if (cachedUser?.rank) this._updateRankDisplay(cachedUser.rank);
+        const adminLink = document.querySelector('.nav-link--admin');
+        if (adminLink) adminLink.style.display = cachedUser?.is_admin ? '' : 'none';
+
         switch (page) {
             case 'login': this._renderLogin(); break;
             case 'register': this._renderRegister(); break;
@@ -275,6 +281,7 @@ class RealmWarsApp {
             case 'decks': await this._renderDecks(); break;
             case 'stats': await this._renderStats(); break;
             case 'options': await this._renderOptions(); break;
+            case 'admin': await this._renderAdmin(); break;
             default: await this._renderHome(); break;
         }
     }
@@ -355,12 +362,68 @@ class RealmWarsApp {
 
     // ===== HOME =====
 
+    // ===== RANK HELPERS =====
+
+    _updateRankDisplay(rank) {
+        if (!rank) return;
+        const isLegend = rank.tier === 'Legend';
+
+        // Nav badge
+        const badge = document.getElementById('rank-badge');
+        const label = document.getElementById('rank-label');
+        if (badge) badge.textContent = rank.emoji;
+        if (label) {
+            label.textContent  = rank.label;
+            label.style.color  = rank.color;
+        }
+
+        // Home hero
+        const heroEmblem   = document.getElementById('rank-hero-emblem');
+        const heroLabel    = document.getElementById('rank-hero-label');
+        const heroStars    = document.getElementById('rank-hero-stars');
+        const progressFill = document.getElementById('rank-progress-fill');
+        const progressText = document.getElementById('rank-progress-text');
+        const rankHero     = document.getElementById('rank-hero');
+
+        if (heroEmblem) heroEmblem.textContent = rank.emoji;
+        if (heroLabel)  { heroLabel.textContent = rank.label; heroLabel.style.color = rank.color; }
+        if (rankHero)   rankHero.style.setProperty('--rank-color', rank.color);
+
+        if (heroStars) {
+            if (isLegend) {
+                heroStars.innerHTML = '<span class="rank-star rank-star--lit">★</span>'.repeat(3);
+            } else {
+                const stars = rank.stars ?? 0;
+                heroStars.innerHTML = [0,1,2].map(i =>
+                    `<span class="rank-star ${i < stars ? 'rank-star--lit' : ''}">★</span>`
+                ).join('');
+            }
+        }
+
+        if (progressFill && progressText) {
+            if (isLegend) {
+                progressFill.style.width = '100%';
+                progressText.textContent = '👑 Legend';
+            } else {
+                const tierFloors = { Bronze:0, Silver:30, Gold:60, Platinum:90, Diamond:120 };
+                const tierFloor  = tierFloors[rank.tier] ?? 0;
+                const local      = rank.points - tierFloor;   // 0-29
+                const pct        = Math.round((local / 30) * 100);
+                const nextTiers  = { Bronze:'Silver', Silver:'Gold', Gold:'Platinum', Platinum:'Diamond', Diamond:'Legend' };
+                const nextTier   = nextTiers[rank.tier] || 'Legend';
+                progressFill.style.width   = pct + '%';
+                progressText.textContent   = `${local} / 30 stars to ${nextTier}`;
+            }
+        }
+    }
+
     async _renderHome() {
         ui.showPage('home');
 
         try {
             const user = await auth.refreshUser();
             ui.updateGoldDisplay(user.gold);
+            if (user.rank) this._updateRankDisplay(user.rank);
 
             document.getElementById('welcome-name').textContent = user.name;
             document.getElementById('home-gold').textContent = user.gold.toLocaleString();
@@ -392,16 +455,24 @@ class RealmWarsApp {
         ui.showLoadingSpinner('Loading shop...');
 
         try {
-            const [packs, user] = await Promise.all([api.getShop(), auth.refreshUser()]);
+            const user = await auth.refreshUser();
             ui.hideLoadingSpinner();
             ui.updateGoldDisplay(user.gold);
 
-            const container = document.getElementById('shop-packs-grid');
-            if (container) {
-                ui.renderShop(container, packs, {
-                    onBuy: (pack) => this._buyPack(pack),
-                });
-            }
+            // Wire buy buttons and affordability on Blade-rendered shop cards
+            document.querySelectorAll('.shop-pack-card').forEach(card => {
+                const price  = parseInt(card.dataset.packPrice);
+                const packId = parseInt(card.dataset.packId);
+                const btn    = card.querySelector('.shop-buy-btn');
+                card.classList.toggle('unaffordable', user.gold < price);
+                if (btn) {
+                    btn.onclick = () => {
+                        this.currentPackId = packId;
+                        window.location.hash = '#open-packs';
+                    };
+                }
+            });
+
         } catch (err) {
             ui.hideLoadingSpinner();
             ui.showNotification('Failed to load shop: ' + err.message, 'error');
@@ -486,57 +557,49 @@ class RealmWarsApp {
         ui.showPage('open-packs');
 
         try {
-            const [packs, user] = await Promise.all([api.getPacks(), auth.refreshUser()]);
+            const user = await auth.refreshUser();
             ui.updateGoldDisplay(user.gold);
 
-            const packSelection = document.getElementById('pack-selection-grid');
-            if (packSelection) {
-                packSelection.innerHTML = '';
-                packs.forEach(pack => {
-                    const div = document.createElement('div');
-                    div.className = 'pack-option';
-                    if (this.currentPackId && pack.id == this.currentPackId) {
-                        div.classList.add('selected');
-                    }
-                    let emoji = '📦';
-                    if (pack.name.toLowerCase().includes('arcane')) emoji = '🔮';
-                    if (pack.name.toLowerCase().includes('legendary')) emoji = '✨';
+            // Wire click handlers on Blade-rendered pack options
+            const options = document.querySelectorAll('.pack-option');
+            options.forEach(opt => {
+                opt.onclick = () => {
+                    options.forEach(p => p.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    this.currentPackId = parseInt(opt.dataset.packId);
+                };
+            });
 
-                    div.innerHTML = `
-                        <div class="pack-emoji">${emoji}</div>
-                        <div class="pack-option-name">${pack.name}</div>
-                        <div class="pack-option-price">${pack.price} Gold</div>
-                    `;
-                    div.addEventListener('click', () => {
-                        document.querySelectorAll('.pack-option').forEach(p => p.classList.remove('selected'));
-                        div.classList.add('selected');
-                        this.currentPackId = pack.id;
-                    });
-                    packSelection.appendChild(div);
-                });
+            // Auto-select pre-selected or first pack
+            const toSelect = this.currentPackId
+                ? document.querySelector(`.pack-option[data-pack-id="${this.currentPackId}"]`)
+                : options[0];
+            if (toSelect) {
+                toSelect.classList.add('selected');
+                this.currentPackId = parseInt(toSelect.dataset.packId);
             }
 
-            // Open pack button
             const openBtn = document.getElementById('pack-open-btn');
-            if (openBtn) {
-                openBtn.onclick = () => this._openSelectedPack(packs);
-            }
+            if (openBtn) openBtn.onclick = () => this._openSelectedPack();
 
         } catch (err) {
             ui.showNotification('Failed to load packs: ' + err.message, 'error');
         }
     }
 
-    async _openSelectedPack(packs) {
+    async _openSelectedPack() {
         if (!this.currentPackId) {
             ui.showNotification('Please select a pack first!', 'warning');
             return;
         }
 
-        const pack = packs.find(p => p.id == this.currentPackId);
-        const user = auth.getUser();
-        if (user && user.gold < pack.price) {
-            ui.showNotification(`Not enough gold! Need ${pack.price}, have ${user.gold}.`, 'warning');
+        const selectedEl = document.querySelector(`.pack-option[data-pack-id="${this.currentPackId}"]`);
+        const price   = parseInt(selectedEl?.dataset.packPrice || 0);
+        const name    = selectedEl?.dataset.packName || '';
+        const user    = auth.getUser();
+
+        if (user && user.gold < price) {
+            ui.showNotification(`Not enough gold! Need ${price}, have ${user.gold}.`, 'warning');
             return;
         }
 
@@ -548,7 +611,7 @@ class RealmWarsApp {
             const result = await api.openPack(this.currentPackId);
             auth.updateGold(result.gold_remaining);
             ui.updateGoldDisplay(result.gold_remaining);
-            this.packOpener.show(result.cards, pack);
+            this.packOpener.show(result.cards, { id: this.currentPackId, name, price });
         } catch (err) {
             ui.showNotification(err.data?.error || err.message, 'error');
         } finally {
@@ -799,6 +862,36 @@ class RealmWarsApp {
             const s = await api.getStats();
             ui.hideLoadingSpinner();
 
+            // Rank banner
+            if (s.rank) {
+                this._updateRankDisplay(s.rank);
+                const isLegend = s.rank.tier === 'Legend';
+                const srbEmblem = document.getElementById('srb-emblem');
+                const srbLabel  = document.getElementById('srb-label');
+                const srbStars  = document.getElementById('srb-stars');
+                const srbPoints = document.getElementById('srb-points');
+                const srbNext   = document.getElementById('srb-next');
+                const banner    = document.getElementById('stats-rank-banner');
+                if (srbEmblem) srbEmblem.textContent = s.rank.emoji;
+                if (srbLabel)  { srbLabel.textContent = s.rank.label; srbLabel.style.color = s.rank.color; }
+                if (banner)    banner.style.setProperty('--rank-color', s.rank.color);
+                if (srbPoints) srbPoints.textContent = s.rank.points + ' stars total';
+                if (srbStars) {
+                    if (isLegend) {
+                        srbStars.innerHTML = '<span class="rank-star rank-star--lit">★</span>'.repeat(3);
+                    } else {
+                        const stars = s.rank.stars ?? 0;
+                        srbStars.innerHTML = [0,1,2].map(i =>
+                            `<span class="rank-star ${i < stars ? 'rank-star--lit' : ''}">★</span>`
+                        ).join('');
+                    }
+                }
+                if (srbNext) {
+                    const nextTiers = { Bronze:'Silver', Silver:'Gold', Gold:'Platinum', Platinum:'Diamond', Diamond:'Legend' };
+                    srbNext.textContent = isLegend ? '👑 Maximum rank achieved' : `Next: ${nextTiers[s.rank.tier] || 'Legend'} 10`;
+                }
+            }
+
             // Overview
             document.getElementById('stat-games').textContent       = s.games_played;
             document.getElementById('stat-wins').textContent        = s.wins;
@@ -959,6 +1052,378 @@ class RealmWarsApp {
         } catch (err) {
             ui.showNotification('Failed to load settings: ' + err.message, 'error');
         }
+    }
+
+    // ===== ADMIN =====
+
+    async _renderAdmin() {
+        ui.showPage('admin');
+
+        const user = auth.getUser();
+        if (!user?.is_admin) { window.location.hash = '#home'; return; }
+
+        // Tab switching
+        document.querySelectorAll('.admin-tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`admin-tab-${tab.dataset.tab}`)?.classList.add('active');
+                if (tab.dataset.tab === 'cards') this._adminLoadCards();
+                if (tab.dataset.tab === 'users') this._adminLoadUsers();
+                if (tab.dataset.tab === 'packs') this._adminLoadPacks();
+            };
+        });
+
+        this._adminLoadDashboard();
+    }
+
+    async _adminLoadDashboard() {
+        try {
+            const d = await api.adminDashboard();
+            const CLASS_EMOJI = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
+
+            document.getElementById('admin-stats-grid').innerHTML = [
+                { icon:'👥', label:'Total Users',    value: d.total_users },
+                { icon:'🃏', label:'Total Cards',    value: d.total_cards },
+                { icon:'⚔️', label:'Total Games',    value: d.total_games },
+                { icon:'🎮', label:'Active Games',   value: d.active_games },
+                { icon:'📦', label:'Total Packs',    value: d.total_packs },
+                { icon:'🪙', label:'Gold in Economy',value: d.gold_in_economy.toLocaleString() },
+            ].map(s => `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
+
+            document.getElementById('admin-recent-users').innerHTML = d.recent_users.map(u =>
+                `<div class="admin-list-row">
+                    <span class="alr-name">${u.name}</span>
+                    <span class="alr-meta">${u.email}</span>
+                    <span class="alr-badge">${u.roles?.includes('admin') ? '🛡️' : ''}${u.gold}🪙</span>
+                </div>`
+            ).join('') || '<div class="stats-empty">No users</div>';
+
+            document.getElementById('admin-recent-games').innerHTML = d.recent_games.map(g =>
+                `<div class="admin-list-row">
+                    <span class="alr-name">${g.player1?.name ?? '?'} vs ${g.player2?.name ?? '?'}</span>
+                    <span class="alr-badge admin-badge--${g.status}">${g.status}</span>
+                </div>`
+            ).join('') || '<div class="stats-empty">No games</div>';
+        } catch (err) {
+            ui.showNotification('Failed to load admin dashboard', 'error');
+        }
+    }
+
+    async _adminLoadCards() {
+        try {
+            const cards = await api.adminGetCards();
+            this._adminCards = cards;
+            this._adminRenderCardsTable(cards);
+            this._adminWireCardForm();
+
+            const search = document.getElementById('admin-card-search');
+            search.oninput = () => {
+                const q = search.value.toLowerCase();
+                this._adminRenderCardsTable(cards.filter(c =>
+                    c.name.toLowerCase().includes(q) || c.hero_class.includes(q) || c.rarity.includes(q)
+                ));
+            };
+        } catch (err) { ui.showNotification('Failed to load cards', 'error'); }
+    }
+
+    _adminRenderCardsTable(cards) {
+        const RARITY_COLOR = { common:'#9ca3af', rare:'#3b82f6', epic:'#a855f7', legendary:'#f59e0b' };
+        const CLASS_EMOJI  = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
+        document.getElementById('admin-cards-tbody').innerHTML = cards.map(c => `
+            <tr data-card-id="${c.id}">
+                <td><strong>${c.name}</strong></td>
+                <td>${CLASS_EMOJI[c.hero_class] || ''} ${c.hero_class}</td>
+                <td>${c.card_type}</td>
+                <td><span style="color:${RARITY_COLOR[c.rarity]}">${c.rarity}</span></td>
+                <td>${c.mana_cost}</td>
+                <td>${c.card_type === 'spell' ? '—' : `${c.attack}/${c.health}`}</td>
+                <td class="admin-actions">
+                    <button class="btn btn-ghost btn-xs admin-card-edit" data-id="${c.id}">Edit</button>
+                    <button class="btn btn-danger btn-xs admin-card-delete" data-id="${c.id}">Del</button>
+                </td>
+            </tr>`).join('');
+
+        document.querySelectorAll('.admin-card-edit').forEach(btn => {
+            btn.onclick = () => this._adminOpenCardForm(this._adminCards.find(c => c.id == btn.dataset.id));
+        });
+        document.querySelectorAll('.admin-card-delete').forEach(btn => {
+            btn.onclick = () => this._adminDeleteCard(parseInt(btn.dataset.id));
+        });
+    }
+
+    _adminWireCardForm() {
+        document.getElementById('admin-card-new-btn').onclick = () => this._adminOpenCardForm(null);
+        document.getElementById('admin-card-cancel').onclick  = () => {
+            document.getElementById('admin-card-form-wrap').style.display = 'none';
+        };
+
+        const typeSelect = document.querySelector('#admin-card-form [name=card_type]');
+        const statsGroup = document.getElementById('admin-card-stats-group');
+        const hpGroup    = document.getElementById('admin-card-health-group');
+        typeSelect.onchange = () => {
+            const show = typeSelect.value === 'minion';
+            statsGroup.style.display = show ? '' : 'none';
+            hpGroup.style.display    = show ? '' : 'none';
+        };
+
+        document.getElementById('admin-card-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const id   = form.dataset.editId;
+            const data = {
+                name:        form.name.value,
+                description: form.description.value,
+                mana_cost:   parseInt(form.mana_cost.value),
+                card_type:   form.card_type.value,
+                hero_class:  form.hero_class.value,
+                rarity:      form.rarity.value,
+                flavor_text: form.flavor_text.value,
+            };
+            if (data.card_type === 'minion') {
+                data.attack = parseInt(form.attack.value);
+                data.health = parseInt(form.health.value);
+            }
+            const btn = form.querySelector('[type=submit]');
+            btn.disabled = true;
+            try {
+                if (id) {
+                    await api.adminUpdateCard(id, data);
+                    ui.showNotification('Card updated!', 'success');
+                } else {
+                    await api.adminCreateCard(data);
+                    ui.showNotification('Card created!', 'success');
+                }
+                document.getElementById('admin-card-form-wrap').style.display = 'none';
+                this._adminLoadCards();
+            } catch (err) {
+                ui.showNotification(err.data?.message || err.message, 'error');
+            } finally { btn.disabled = false; }
+        };
+    }
+
+    _adminOpenCardForm(card) {
+        const wrap  = document.getElementById('admin-card-form-wrap');
+        const form  = document.getElementById('admin-card-form');
+        const title = document.getElementById('admin-card-form-title');
+        const statsGroup = document.getElementById('admin-card-stats-group');
+        const hpGroup    = document.getElementById('admin-card-health-group');
+
+        form.reset();
+        if (card) {
+            title.textContent        = 'Edit Card';
+            form.dataset.editId      = card.id;
+            form.name.value          = card.name;
+            form.description.value   = card.description  || '';
+            form.mana_cost.value     = card.mana_cost;
+            form.card_type.value     = card.card_type;
+            form.hero_class.value    = card.hero_class;
+            form.rarity.value        = card.rarity;
+            form.flavor_text.value   = card.flavor_text  || '';
+            if (card.card_type === 'minion') {
+                form.attack.value = card.attack;
+                form.health.value = card.health;
+            }
+        } else {
+            title.textContent   = 'New Card';
+            delete form.dataset.editId;
+        }
+        const isMinion = (card?.card_type ?? 'minion') === 'minion';
+        statsGroup.style.display = isMinion ? '' : 'none';
+        hpGroup.style.display    = isMinion ? '' : 'none';
+        wrap.style.display = '';
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async _adminDeleteCard(id) {
+        if (!confirm('Delete this card? This cannot be undone.')) return;
+        try {
+            await api.adminDeleteCard(id);
+            ui.showNotification('Card deleted', 'success');
+            this._adminLoadCards();
+        } catch (err) { ui.showNotification(err.message, 'error'); }
+    }
+
+    async _adminLoadUsers() {
+        try {
+            const users = await api.adminGetUsers();
+            this._adminUsers = users;
+            this._adminRenderUsersTable(users);
+
+            const search = document.getElementById('admin-user-search');
+            search.oninput = () => {
+                const q = search.value.toLowerCase();
+                this._adminRenderUsersTable(users.filter(u =>
+                    u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+                ));
+            };
+        } catch (err) { ui.showNotification('Failed to load users', 'error'); }
+    }
+
+    _adminRenderUsersTable(users) {
+        document.getElementById('admin-users-tbody').innerHTML = users.map(u => `
+            <tr>
+                <td>${u.id}</td>
+                <td><strong>${u.name}</strong></td>
+                <td class="admin-cell-muted">${u.email}</td>
+                <td>${(u.gold||0).toLocaleString()} 🪙</td>
+                <td><span style="color:${u.rank?.color}">${u.rank?.emoji} ${u.rank?.label}</span></td>
+                <td>${(u.roles||[]).map(r => `<span class="admin-role-pill admin-role-pill--${r}">${r}</span>`).join('') || '—'}</td>
+                <td class="admin-actions">
+                    <button class="btn btn-ghost btn-xs admin-user-edit" data-id="${u.id}">Edit</button>
+                    <button class="btn btn-danger btn-xs admin-user-delete" data-id="${u.id}">Del</button>
+                </td>
+            </tr>`).join('');
+
+        document.querySelectorAll('.admin-user-edit').forEach(btn => {
+            btn.onclick = () => this._adminOpenUserModal(this._adminUsers.find(u => u.id == btn.dataset.id));
+        });
+        document.querySelectorAll('.admin-user-delete').forEach(btn => {
+            btn.onclick = () => this._adminDeleteUser(parseInt(btn.dataset.id));
+        });
+
+        document.getElementById('admin-user-cancel').onclick = () => {
+            document.getElementById('admin-user-modal').style.display = 'none';
+        };
+        document.getElementById('admin-user-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const id   = form.querySelector('[name=id]').value;
+            const roles = [...form.querySelectorAll('[name^=role_]:checked')].map(cb => cb.value);
+            const data  = {
+                name:        form.name.value,
+                email:       form.email.value,
+                gold:        parseInt(form.gold.value),
+                rank_points: parseInt(form.rank_points.value),
+                roles,
+            };
+            const btn = form.querySelector('[type=submit]');
+            btn.disabled = true;
+            try {
+                await api.adminUpdateUser(id, data);
+                ui.showNotification('User updated!', 'success');
+                document.getElementById('admin-user-modal').style.display = 'none';
+                this._adminLoadUsers();
+            } catch (err) {
+                ui.showNotification(err.data?.message || err.message, 'error');
+            } finally { btn.disabled = false; }
+        };
+    }
+
+    _adminOpenUserModal(user) {
+        const modal = document.getElementById('admin-user-modal');
+        const form  = document.getElementById('admin-user-form');
+        form.querySelector('[name=id]').value          = user.id;
+        form.querySelector('[name=name]').value        = user.name;
+        form.querySelector('[name=email]').value       = user.email;
+        form.querySelector('[name=gold]').value        = user.gold ?? 0;
+        form.querySelector('[name=rank_points]').value = user.rank_points ?? 0;
+        form.querySelector('[name=role_admin]').checked      = user.roles?.includes('admin');
+        form.querySelector('[name=role_moderator]').checked  = user.roles?.includes('moderator');
+        modal.style.display = 'flex';
+    }
+
+    async _adminDeleteUser(id) {
+        if (!confirm('Delete this user? This cannot be undone.')) return;
+        try {
+            await api.adminDeleteUser(id);
+            ui.showNotification('User deleted', 'success');
+            this._adminLoadUsers();
+        } catch (err) { ui.showNotification(err.data?.error || err.message, 'error'); }
+    }
+
+    async _adminLoadPacks() {
+        try {
+            const packs = await api.adminGetPacks();
+            this._adminPacks = packs;
+            this._adminRenderPacksTable(packs);
+            this._adminWirePackForm();
+        } catch (err) { ui.showNotification('Failed to load packs', 'error'); }
+    }
+
+    _adminRenderPacksTable(packs) {
+        document.getElementById('admin-packs-tbody').innerHTML = packs.map(p => `
+            <tr>
+                <td><strong>${p.name}</strong></td>
+                <td class="admin-cell-muted">${p.set_name}</td>
+                <td>${p.price} 🪙</td>
+                <td>${p.card_count}</td>
+                <td>${p.pack_openings_count ?? 0}</td>
+                <td class="admin-actions">
+                    <button class="btn btn-ghost btn-xs admin-pack-edit" data-id="${p.id}">Edit</button>
+                    <button class="btn btn-danger btn-xs admin-pack-delete" data-id="${p.id}">Del</button>
+                </td>
+            </tr>`).join('');
+
+        document.querySelectorAll('.admin-pack-edit').forEach(btn => {
+            btn.onclick = () => this._adminOpenPackForm(this._adminPacks.find(p => p.id == btn.dataset.id));
+        });
+        document.querySelectorAll('.admin-pack-delete').forEach(btn => {
+            btn.onclick = () => this._adminDeletePack(parseInt(btn.dataset.id));
+        });
+    }
+
+    _adminWirePackForm() {
+        document.getElementById('admin-pack-new-btn').onclick = () => this._adminOpenPackForm(null);
+        document.getElementById('admin-pack-cancel').onclick  = () => {
+            document.getElementById('admin-pack-form-wrap').style.display = 'none';
+        };
+
+        document.getElementById('admin-pack-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const id   = form.dataset.editId;
+            const data = {
+                name:       form.name.value,
+                price:      parseInt(form.price.value),
+                card_count: parseInt(form.card_count.value),
+                set_name:   form.set_name.value,
+            };
+            const btn = form.querySelector('[type=submit]');
+            btn.disabled = true;
+            try {
+                if (id) {
+                    await api.adminUpdatePack(id, data);
+                    ui.showNotification('Pack updated!', 'success');
+                } else {
+                    await api.adminCreatePack(data);
+                    ui.showNotification('Pack created!', 'success');
+                }
+                document.getElementById('admin-pack-form-wrap').style.display = 'none';
+                this._adminLoadPacks();
+            } catch (err) {
+                ui.showNotification(err.data?.message || err.message, 'error');
+            } finally { btn.disabled = false; }
+        };
+    }
+
+    _adminOpenPackForm(pack) {
+        const wrap  = document.getElementById('admin-pack-form-wrap');
+        const form  = document.getElementById('admin-pack-form');
+        form.reset();
+        if (pack) {
+            document.getElementById('admin-pack-form-title').textContent = 'Edit Pack';
+            form.dataset.editId  = pack.id;
+            form.name.value       = pack.name;
+            form.price.value      = pack.price;
+            form.card_count.value = pack.card_count;
+            form.set_name.value   = pack.set_name;
+        } else {
+            document.getElementById('admin-pack-form-title').textContent = 'New Pack';
+            delete form.dataset.editId;
+        }
+        wrap.style.display = '';
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async _adminDeletePack(id) {
+        if (!confirm('Delete this pack?')) return;
+        try {
+            await api.adminDeletePack(id);
+            ui.showNotification('Pack deleted', 'success');
+            this._adminLoadPacks();
+        } catch (err) { ui.showNotification(err.message, 'error'); }
     }
 
     async _saveDeck() {

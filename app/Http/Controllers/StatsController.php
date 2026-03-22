@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\CardStat;
 use App\Models\Game;
+use App\Services\RankService;
 use Illuminate\Http\Request;
 
 class StatsController extends Controller
 {
     public function index(Request $request)
     {
+        $rankService = new RankService();
         $user = $request->user();
 
         $games = Game::where(function ($q) use ($user) {
@@ -76,7 +78,10 @@ class StatsController extends Controller
                 ];
             });
 
+        $rank = $rankService->getRankDisplay($user->rank_points ?? 0);
+
         return response()->json([
+            'rank'               => $rank,
             'games_played'       => $gamesPlayed,
             'wins'               => $wins,
             'losses'             => $losses,

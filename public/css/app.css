@@ -2157,6 +2157,21 @@ body.game-mode #app  { margin-top: 0; }
   gap: 12px;
 }
 
+.game-over-rank-row {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 4px 0 16px;
+  min-height: 1.4em;
+  opacity: 0.9;
+}
+.gorr-stars {
+  font-size: 1.1rem;
+  margin-left: 6px;
+  color: #ffd700;
+  letter-spacing: 2px;
+}
+
 /* ============================================
    15b. 2D BOARD (Hearthstone-style flat layout)
    ============================================ */
@@ -3284,6 +3299,164 @@ hr {
 */
 
 /* ============================================
+   23b. RANK SYSTEM
+   ============================================ */
+
+/* Nav rank display */
+.nav-rank {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.nav-rank #rank-badge { font-size: 1rem; }
+.nav-rank #rank-label { color: var(--rank-color, #cd7f32); transition: color 0.4s; }
+
+/* Home rank hero banner */
+.rank-hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  border: 1px solid color-mix(in srgb, var(--rank-color, #cd7f32) 40%, transparent);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--rank-color, #cd7f32) 12%, transparent),
+    rgba(0,0,0,0.3));
+  position: relative;
+  overflow: hidden;
+}
+.rank-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 50%, color-mix(in srgb, var(--rank-color, #cd7f32) 20%, transparent), transparent 60%);
+  pointer-events: none;
+}
+.rank-hero-emblem {
+  font-size: 3.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px var(--rank-color, #cd7f32));
+  flex-shrink: 0;
+}
+.rank-hero-info { flex: 1; min-width: 0; }
+.rank-hero-label {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rank-color, #cd7f32);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--rank-color, #cd7f32) 60%, transparent);
+  margin-bottom: 8px;
+}
+.rank-hero-stars {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.rank-star {
+  font-size: 1.4rem;
+  color: rgba(255,255,255,0.2);
+  transition: color 0.3s, text-shadow 0.3s;
+}
+.rank-star--lit {
+  color: var(--rank-color, #ffd700);
+  text-shadow: 0 0 8px var(--rank-color, #ffd700);
+}
+.rank-hero-progress { margin-top: 4px; }
+.rank-progress-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.rank-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rank-color, #cd7f32), color-mix(in srgb, var(--rank-color, #cd7f32) 60%, #fff));
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.rank-progress-text {
+  font-size: 0.72rem;
+  opacity: 0.6;
+  letter-spacing: 0.02em;
+}
+.rank-hero-play {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Stats page rank banner */
+.stats-rank-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  border: 1px solid color-mix(in srgb, var(--rank-color, #cd7f32) 40%, transparent);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--rank-color, #cd7f32) 10%, transparent),
+    rgba(0,0,0,0.2));
+}
+.srb-emblem {
+  font-size: 2.8rem;
+  filter: drop-shadow(0 0 10px var(--rank-color, #cd7f32));
+  flex-shrink: 0;
+}
+.srb-info { flex: 1; }
+.srb-label {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--rank-color, #cd7f32);
+  margin-bottom: 6px;
+}
+.srb-stars { display: flex; gap: 5px; }
+.srb-right { text-align: right; flex-shrink: 0; }
+.srb-points { font-size: 0.9rem; font-weight: 700; opacity: 0.8; }
+.srb-next   { font-size: 0.72rem; opacity: 0.5; margin-top: 3px; }
+
+/* Game over rank change notification */
+.rank-up-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 2px solid var(--rank-color, #ffd700);
+  border-radius: 16px;
+  padding: 32px 40px;
+  text-align: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  box-shadow: 0 0 60px color-mix(in srgb, var(--rank-color, #ffd700) 40%, transparent);
+  pointer-events: none;
+}
+.rank-up-toast.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.rank-up-emoji  { font-size: 3rem; margin-bottom: 8px; }
+.rank-up-title  { font-size: 1.4rem; font-weight: 900; letter-spacing: 0.08em; color: var(--rank-color, #ffd700); }
+.rank-up-label  { font-size: 0.9rem; opacity: 0.7; margin-top: 4px; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .rank-hero { flex-wrap: wrap; gap: 16px; }
+  .rank-hero-play { width: 100%; text-align: center; }
+  .stats-rank-banner { flex-wrap: wrap; }
+}
+
+/* ============================================
    24. STATS PAGE
    ============================================ */
 
@@ -4081,3 +4254,277 @@ hr {
   to   { opacity:1; transform: scale(1)   translateY(0); }
 }
 
+/* ── Shop pack card (Blade-rendered) ─────── */
+.shop-pack-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shop-pack-card .pack-art {
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--purple-dark) 0%, var(--bg-card) 100%);
+}
+
+.shop-pack-card .pack-art.legendary {
+  background: linear-gradient(135deg, #78350f 0%, #b45309 100%);
+}
+
+.shop-pack-card .pack-art.arcane {
+  background: linear-gradient(135deg, #1e3a5f 0%, #4c1d95 100%);
+}
+
+.shop-pack-card .pack-art.starter {
+  background: linear-gradient(135deg, var(--purple-dark) 0%, var(--bg-card) 100%);
+}
+
+.shop-pack-card .pack-name {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.shop-pack-card .pack-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.shop-pack-card .pack-price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.shop-pack-card .pack-price span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.shop-pack-card.unaffordable {
+  opacity: 0.5;
+}
+
+/* ── Stats rank ladder ────────────────────── */
+.stats-rank-span {
+  grid-column: 1 / -1;
+}
+
+.rank-ladder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rank-ladder-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-glass-light);
+  border-left: 3px solid var(--rank-color, var(--border-subtle));
+}
+
+.rlr-emoji {
+  font-size: 1.4rem;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.rlr-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--rank-color, var(--text-primary));
+  min-width: 90px;
+}
+
+.rlr-range {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+
+/* ============================================
+   27. ADMIN PANEL
+   ============================================ */
+
+.nav-link--admin { color: #f59e0b !important; font-weight: 700; }
+
+/* Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  padding: 4px;
+}
+.admin-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.admin-tab.active, .admin-tab:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+}
+.admin-tab.active { background: rgba(245,158,11,0.15); color: #f59e0b; }
+
+/* Panels */
+.admin-panel { display: none; }
+.admin-panel.active { display: block; }
+
+/* Stats grid reuse */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px,1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+/* Two-col layout for dashboard */
+.admin-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 700px) { .admin-two-col { grid-template-columns: 1fr; } }
+
+/* List rows in dashboard cards */
+.admin-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.admin-list-row:last-child { border-bottom: none; }
+.alr-name  { flex: 1; font-size: 0.85rem; font-weight: 600; }
+.alr-meta  { font-size: 0.78rem; color: var(--text-secondary); }
+.alr-badge { font-size: 0.78rem; background: rgba(255,255,255,0.07); padding: 2px 8px; border-radius: 10px; }
+.admin-badge--active  { color: #4ade80; }
+.admin-badge--waiting { color: #facc15; }
+.admin-badge--finished{ color: var(--text-secondary); }
+
+/* Toolbar */
+.admin-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.admin-search {
+  flex: 1;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.25);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+/* Table */
+.admin-table-wrap { overflow-x: auto; }
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.admin-table th {
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.admin-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+.admin-table tr:hover td { background: rgba(255,255,255,0.03); }
+.admin-actions { display: flex; gap: 6px; white-space: nowrap; }
+.admin-cell-muted { color: var(--text-secondary); font-size: 0.8rem; }
+.btn-xs { padding: 3px 10px; font-size: 0.75rem; }
+
+/* Inline form card */
+.admin-form-card {
+  margin-bottom: 20px;
+  padding: 22px 24px;
+}
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+}
+@media (max-width: 600px) { .admin-form-grid { grid-template-columns: 1fr; } }
+.admin-form-actions { display: flex; gap: 10px; margin-top: 4px; }
+
+/* Role pills */
+.admin-role-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+}
+.admin-role-pill--admin     { background: rgba(245,158,11,0.2); color: #f59e0b; }
+.admin-role-pill--moderator { background: rgba(99,102,241,0.2); color: #818cf8; }
+
+/* User modal */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  backdrop-filter: blur(4px);
+}
+.admin-modal {
+  width: min(500px, 95vw);
+  padding: 28px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.admin-role-checks {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.admin-role-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.admin-role-check input { width: 16px; height: 16px; cursor: pointer; }
+
+/* Light mode overrides */
+[data-theme="light"] .admin-search { background: rgba(255,255,255,0.8); border-color: rgba(0,0,0,0.15); color: #1f2937; }
+[data-theme="light"] .admin-table tr:hover td { background: rgba(0,0,0,0.02); }

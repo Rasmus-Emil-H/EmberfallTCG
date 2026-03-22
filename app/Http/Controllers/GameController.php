@@ -4,16 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\CardStat;
 use App\Models\Game;
+use App\Models\User;
 use App\Services\GameService;
+use App\Services\RankService;
 use Illuminate\Http\Request;
 
 class GameController extends Controller
 {
     protected GameService $gameService;
+    protected RankService $rankService;
 
-    public function __construct(GameService $gameService)
+    public function __construct(GameService $gameService, RankService $rankService)
     {
         $this->gameService = $gameService;
+        $this->rankService = $rankService;
     }
 
     public function joinQueue(Request $request)
@@ -114,6 +118,7 @@ class GameController extends Controller
         if ($winnerId) {
             $game->status = 'finished';
             $game->winner_id = $winnerId;
+            $this->awardRank($game);
         }
 
         $game->game_state = $state;
@@ -166,6 +171,7 @@ class GameController extends Controller
         if ($winnerId) {
             $game->status = 'finished';
             $game->winner_id = $winnerId;
+            $this->awardRank($game);
         }
 
         $game->game_state = $state;
@@ -218,11 +224,34 @@ class GameController extends Controller
 
         $game->status = 'finished';
         $game->winner_id = $winnerId;
+        $this->awardRank($game);
         $game->save();
 
         return response()->json([
             'message' => 'You surrendered. Better luck next time!',
             'game' => $game,
         ]);
+    }
+
+    /**
+     * Award rank points to winner and deduct from loser after a game finishes.
+     * Must be called before $game->save() so winner_id is set.
+     */
+    private function awardRank(Game $game): void
+    {
+        if (!$game->winner_id || !$game->player1_id || !$game->player2_id) {
+            return;
+        }
+
+        $loserId = $game->winner_id === $game->player1_id
+            ? $game->player2_id
+            : $game->player1_id;
+
+        $winner = User::find($game->winner_id);
+        $loser  = User::find($loserId);
+
+        if ($winner && $loser) {
+            $this->rankService->awardGame($winner, $loser);
+        }
     }
 }

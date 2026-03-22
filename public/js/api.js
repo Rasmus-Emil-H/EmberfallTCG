@@ -178,6 +178,20 @@ class ApiClient {
     updateProfile(data) {
         return this.put('/auth/profile', data);
     }
+
+    // ===== Admin =====
+    adminDashboard()              { return this.get('/admin/dashboard'); }
+    adminGetCards()               { return this.get('/admin/cards'); }
+    adminCreateCard(data)         { return this.post('/admin/cards', data); }
+    adminUpdateCard(id, data)     { return this.put(`/admin/cards/${id}`, data); }
+    adminDeleteCard(id)           { return this.delete(`/admin/cards/${id}`); }
+    adminGetUsers()               { return this.get('/admin/users'); }
+    adminUpdateUser(id, data)     { return this.put(`/admin/users/${id}`, data); }
+    adminDeleteUser(id)           { return this.delete(`/admin/users/${id}`); }
+    adminGetPacks()               { return this.get('/admin/packs'); }
+    adminCreatePack(data)         { return this.post('/admin/packs', data); }
+    adminUpdatePack(id, data)     { return this.put(`/admin/packs/${id}`, data); }
+    adminDeletePack(id)           { return this.delete(`/admin/packs/${id}`); }
 }
 
 const api = new ApiClient();
