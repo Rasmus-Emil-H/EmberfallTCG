@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realm Wars - Fantasy Card Game</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+
+<!-- ===== NAVIGATION ===== -->
+<nav id="nav">
+    <div class="nav-logo">REALM<span>&nbsp;WARS</span></div>
+    <div class="nav-links">
+        <a href="#" data-page="home" data-auth="required">Home</a>
+        <a href="#" data-page="collection" data-auth="required">Collection</a>
+        <a href="#" data-page="open-packs" data-auth="required">Open Packs</a>
+        <a href="#" data-page="shop" data-auth="required">Shop</a>
+        <a href="#" data-page="decks" data-auth="required">Decks</a>
+        <a href="#" data-page="game" data-auth="required">Play</a>
+        <a href="#" data-page="login" data-auth="guest">Login</a>
+        <a href="#" data-page="register" data-auth="guest">Register</a>
+        <button id="logout-btn" data-auth="required">Logout</button>
+    </div>
+    <div class="nav-gold" data-auth="required">
+        <span class="gold-icon">🪙</span>
+        <span id="gold-display">0</span>
+    </div>
+</nav>
+
+<!-- ===== APP ===== -->
+<div id="app">
+
+    <!-- LOGIN PAGE -->
+    <div id="login-page" class="page">
+        <div class="auth-container">
+            <div class="auth-card">
+                <h1 class="auth-title">⚔️ REALM WARS</h1>
+                <p class="auth-subtitle">Enter the realm, Champion</p>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" placeholder="champion@realm.com" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enter the Realm</button>
+                </form>
+                <div class="auth-divider">No account yet?</div>
+                <a href="#register" class="btn btn-secondary" style="text-align:center;display:block;">Create Account</a>
+                <div style="margin-top:15px;text-align:center;font-size:0.8rem;color:var(--text-secondary);">
+                    Test account: test@test.com / password
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REGISTER PAGE -->
+    <div id="register-page" class="page">
+        <div class="auth-container">
+            <div class="auth-card">
+                <h1 class="auth-title">⚔️ JOIN</h1>
+                <p class="auth-subtitle">Create your legend</p>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="reg-name">Champion Name</label>
+                        <input type="text" id="reg-name" placeholder="Sir Gallanthorn" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" placeholder="champion@realm.com" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Password</label>
+                        <input type="password" id="reg-password" placeholder="At least 6 characters" required autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password-confirm">Confirm Password</label>
+                        <input type="password" id="reg-password-confirm" placeholder="••••••••" required autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Join the Realm</button>
+                </form>
+                <div class="auth-divider">Already a champion?</div>
+                <a href="#login" class="btn btn-secondary" style="text-align:center;display:block;">Sign In</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- HOME PAGE -->
+    <div id="home-page" class="page">
+        <div class="dashboard-hero">
+            <h1>Welcome, <span id="welcome-name">Champion</span></h1>
+            <p>The realm awaits your command. Build your deck, collect cards, and conquer your enemies.</p>
+        </div>
+
+        <div class="user-stats">
+            <div class="stat-item">
+                <div class="stat-value" id="home-gold">0</div>
+                <div class="stat-label">🪙 Gold</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="home-cards">0</div>
+                <div class="stat-label">🃏 Cards</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="home-decks">0</div>
+                <div class="stat-label">📋 Decks</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-card" onclick="window.location.hash='#game'">
+                <div class="card-icon">⚔️</div>
+                <h3>Battle</h3>
+                <p>Enter the arena and face opponents in real-time PvP combat</p>
+            </div>
+            <div class="dashboard-card" onclick="window.location.hash='#open-packs'">
+                <div class="card-icon">📦</div>
+                <h3>Open Packs</h3>
+                <p>Unlock new cards with stunning 3D pack opening animations</p>
+            </div>
+            <div class="dashboard-card" onclick="window.location.hash='#collection'">
+                <div class="card-icon">🃏</div>
+                <h3>Collection</h3>
+                <p>Browse your card collection and discover powerful combos</p>
+            </div>
+            <div class="dashboard-card" onclick="window.location.hash='#deck-builder'">
+                <div class="card-icon">📋</div>
+                <h3>Deck Builder</h3>
+                <p>Craft the perfect deck strategy to dominate the battlefield</p>
+            </div>
+            <div class="dashboard-card" onclick="window.location.hash='#shop'">
+                <div class="card-icon">🏪</div>
+                <h3>Shop</h3>
+                <p>Spend your gold on card packs to expand your collection</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOP PAGE -->
+    <div id="shop-page" class="page">
+        <div class="page-header">
+            <h2>🏪 The Arcane Shop</h2>
+            <p>Spend your gold to acquire powerful new cards</p>
+        </div>
+
+        <div class="gold-shop">
+            <div class="gold-shop-info">
+                <h3>Need More Gold?</h3>
+                <p>Get 500 bonus gold to fuel your collection</p>
+            </div>
+            <button class="btn btn-primary" id="buy-gold-btn" onclick="buyGold()">
+                💰 Get 500 Gold (Free!)
+            </button>
+        </div>
+
+        <div id="shop-packs-grid" class="shop-grid">
+            <!-- Packs rendered by JS -->
+        </div>
+    </div>
+
+    <!-- COLLECTION PAGE -->
+    <div id="collection-page" class="page">
+        <div class="page-header">
+            <h2>🃏 My Collection</h2>
+            <p>Cards owned: <span id="collection-count">0</span></p>
+        </div>
+
+        <div class="collection-filters">
+            <span style="color:var(--text-secondary);font-size:0.85rem;">Rarity:</span>
+            <button class="filter-btn collection-filter-rarity active" data-rarity="all">All</button>
+            <button class="filter-btn collection-filter-rarity rarity-common" data-rarity="common">Common</button>
+            <button class="filter-btn collection-filter-rarity rarity-rare" data-rarity="rare">Rare</button>
+            <button class="filter-btn collection-filter-rarity rarity-epic" data-rarity="epic">Epic</button>
+            <button class="filter-btn collection-filter-rarity rarity-legendary" data-rarity="legendary">Legendary</button>
+        </div>
+
+        <div class="collection-filters">
+            <span style="color:var(--text-secondary);font-size:0.85rem;">Class:</span>
+            <button class="filter-btn collection-filter-class active" data-class="all">All</button>
+            <button class="filter-btn collection-filter-class" data-class="warrior">⚔️ Warrior</button>
+            <button class="filter-btn collection-filter-class" data-class="mage">🔮 Mage</button>
+            <button class="filter-btn collection-filter-class" data-class="ranger">🏹 Ranger</button>
+            <button class="filter-btn collection-filter-class" data-class="paladin">🛡️ Paladin</button>
+            <button class="filter-btn collection-filter-class" data-class="druid">🌿 Druid</button>
+            <button class="filter-btn collection-filter-class" data-class="neutral">⭐ Neutral</button>
+        </div>
+
+        <div id="collection-cards-grid" class="cards-grid">
+            <!-- Cards rendered by JS -->
+        </div>
+    </div>
+
+    <!-- PACK OPENING PAGE -->
+    <div id="open-packs-page" class="page">
+        <div class="pack-opening-container">
+            <div class="page-header">
+                <h2>📦 Open Packs</h2>
+                <p>Select a pack and reveal your new cards in glorious 3D!</p>
+            </div>
+
+            <div class="pack-selection">
+                <div id="pack-selection-grid" class="pack-selection-grid">
+                    <!-- Packs rendered by JS -->
+                </div>
+            </div>
+
+            <button id="pack-open-btn" class="btn btn-purple" style="min-width:200px;margin:0 auto;display:block;">
+                ✨ Open Pack
+            </button>
+
+            <div id="three-pack-container"></div>
+
+            <div id="revealed-cards" class="revealed-cards-grid" style="margin-top:20px;display:flex;flex-wrap:wrap;gap:15px;justify-content:center;">
+                <!-- Revealed cards shown here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME PAGE -->
+    <div id="game-page" class="page" style="padding:0;max-width:100%;">
+
+        <!-- Matchmaking Overlay -->
+        <div id="matchmaking-overlay" class="matchmaking-overlay" style="display:none;">
+            <h2>🔍 Finding Match</h2>
+            <div class="matchmaking-spinner"></div>
+            <p class="matchmaking-status">Searching for an worthy opponent...</p>
+            <button class="btn btn-secondary btn-sm" onclick="window.location.hash='#home'" style="margin-top:10px;">Cancel</button>
+        </div>
+
+        <!-- Game Status Bar -->
+        <div class="game-status-bar">
+            <div class="player-info">
+                <span style="color:var(--red-light);">❤️</span>
+                <span id="opponent-hp" style="color:var(--red-light);font-weight:bold;">30</span>
+                <span style="color:var(--text-secondary);margin-left:8px;" id="opponent-name">Opponent</span>
+            </div>
+
+            <div id="game-turn-indicator" class="game-turn-indicator">Waiting...</div>
+
+            <div class="player-info">
+                <span id="player-name-display" style="color:var(--text-secondary);">You</span>
+                <span style="color:var(--green-light);margin-left:8px;">❤️</span>
+                <span id="player-hp" style="color:var(--green-light);font-weight:bold;">30</span>
+            </div>
+        </div>
+
+        <!-- 3D Game Board -->
+        <div id="game-canvas-container" style="position:relative;width:100%;height:calc(100vh - 120px);">
+            <!-- Three.js canvas rendered here -->
+
+            <!-- UI Overlay at bottom -->
+            <div class="game-ui-overlay">
+                <div id="game-mana-display" class="mana-display">
+                    <!-- Mana crystals -->
+                </div>
+
+                <div style="display:flex;gap:10px;">
+                    <button id="end-turn-btn" class="btn btn-primary btn-sm" disabled>End Turn</button>
+                    <button id="surrender-btn" class="btn btn-danger btn-sm">Surrender</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DECKS PAGE -->
+    <div id="decks-page" class="page">
+        <div class="page-header">
+            <h2>📋 My Decks</h2>
+        </div>
+        <div style="text-align:center;margin-bottom:20px;">
+            <button class="btn btn-primary" onclick="window.location.hash='#deck-builder'">+ Create New Deck</button>
+        </div>
+        <div id="decks-list-grid" class="decks-grid">
+            <!-- Decks rendered by JS -->
+        </div>
+    </div>
+
+    <!-- DECK BUILDER PAGE -->
+    <div id="deck-builder-page" class="page" style="padding-top:80px;">
+        <div class="page-header">
+            <h2>🔨 Deck Builder</h2>
+        </div>
+
+        <div class="deck-builder-layout">
+            <!-- Left: Card Browser -->
+            <div class="deck-builder-cards">
+                <div class="collection-filters" style="margin-bottom:15px;">
+                    <button class="filter-btn deck-filter-class active" data-class="all">All</button>
+                    <button class="filter-btn deck-filter-class" data-class="warrior">⚔️ Warrior</button>
+                    <button class="filter-btn deck-filter-class" data-class="mage">🔮 Mage</button>
+                    <button class="filter-btn deck-filter-class" data-class="ranger">🏹 Ranger</button>
+                    <button class="filter-btn deck-filter-class" data-class="paladin">🛡️ Paladin</button>
+                    <button class="filter-btn deck-filter-class" data-class="druid">🌿 Druid</button>
+                </div>
+                <div id="deck-builder-cards-grid" class="cards-grid" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));">
+                    <!-- Cards -->
+                </div>
+            </div>
+
+            <!-- Right: Deck Info + Card List -->
+            <div class="deck-sidebar">
+                <div class="deck-info">
+                    <div class="form-group">
+                        <label>Deck Name</label>
+                        <input type="text" id="deck-name-input" value="My New Deck">
+                    </div>
+                    <div class="form-group">
+                        <label>Hero Class</label>
+                        <select id="deck-hero-class" style="width:100%;padding:10px;background:var(--bg-darkest);border:1px solid var(--border-gold);border-radius:6px;color:var(--text-primary);font-family:inherit;font-size:0.95rem;">
+                            <option value="warrior">⚔️ Warrior</option>
+                            <option value="mage">🔮 Mage</option>
+                            <option value="ranger">🏹 Ranger</option>
+                            <option value="paladin">🛡️ Paladin</option>
+                            <option value="druid">🌿 Druid</option>
+                        </select>
+                    </div>
+                    <button id="save-deck-btn" class="btn btn-primary" style="width:100%;">Save Deck</button>
+                </div>
+
+                <div class="deck-list">
+                    <div id="deck-card-count" class="deck-count"><span>0</span> / 30 cards</div>
+                    <div id="deck-card-list">
+                        <!-- Deck cards -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- #app -->
+
+<!-- Notifications Container -->
+<div id="notifications"></div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading...</div>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title"></h3>
+            <button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('active')">×</button>
+        </div>
+        <div class="modal-body"></div>
+    </div>
+</div>
+
+<script>
+// Global buy gold function
+async function buyGold() {
+    const btn = document.getElementById('buy-gold-btn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    try {
+        const response = await fetch('/api/shop/gold', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('auth_token'),
+            }
+        });
+        const data = await response.json();
+        if (response.ok) {
+            document.getElementById('gold-display').textContent = data.gold.toLocaleString();
+            // Store updated gold
+            const user = JSON.parse(localStorage.getItem('realm_user') || '{}');
+            user.gold = data.gold;
+            localStorage.setItem('realm_user', JSON.stringify(user));
+
+            // Show notification
+            const note = document.createElement('div');
+            note.className = 'notification success';
+            note.textContent = '+500 Gold added!';
+            document.getElementById('notifications').appendChild(note);
+            setTimeout(() => note.remove(), 3500);
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💰 Get 500 Gold (Free!)';
+    }
+}
+</script>
+
+<script type="module" src="/js/app.js"></script>
+
+</body>
+</html>
