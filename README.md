@@ -45,8 +45,7 @@ A browser-based fantasy card game built with Laravel 13 and Vanilla JS. Collect 
 ### Install
 
 ```bash
-git clone <repo-url>
-cd trup
+gh repo clone Rasmus-Emil-H/Realm-wars-TGC-
 
 composer run setup
 ```
@@ -83,76 +82,6 @@ A test account is pre-seeded: **test@test.com / password**
 
 ---
 
-## Project Structure
-
-```
-app/
-  Http/Controllers/
-    Admin/               # Admin CRUD controllers
-      CardAdminController.php
-      DashboardController.php
-      PackAdminController.php
-      TranslationAdminController.php
-      UserAdminController.php
-    AuthController.php
-    CardController.php
-    DeckController.php
-    GameController.php
-    PackController.php
-    PageController.php   # Serves the SPA shell
-    ShopController.php
-    StatsController.php
-  Http/Middleware/
-    AdminMiddleware.php  # Requires admin role
-    SetLocale.php        # Reads locale from session
-  Models/
-    Card.php
-    Deck.php
-    Game.php
-    Pack.php
-    Role.php
-    Translation.php      # DB-backed translations
-    User.php
-  Services/
-    GameService.php      # Game logic (play card, attack, end turn)
-    RankService.php      # Star/tier calculations
-  Translation/
-    DatabaseLoader.php   # Replaces Laravel file loader with DB
-
-public/js/
-  app.js                 # SPA router + page renderers
-  api.js                 # Fetch wrapper for all API calls
-  auth.js                # Login, register, session management
-  game.js                # Game board, polling, drag-drop
-  ui.js                  # UIManager: pages, notifications, cards
-  three-cards.js         # Three.js card flip (pack opening)
-  three-game.js          # Three.js card animations (in-game)
-
-resources/views/
-  app.blade.php          # SPA shell — injects APP_DATA + includes partials
-  partials/
-    nav.blade.php        # Burger drawer navigation
-    pages/               # One file per page (login, game, admin, …)
-    overlays/            # Pack opening overlay
-
-database/migrations/     # One migration per schema change
-```
-
----
-
-## Architecture
-
-### Single-Page Application
-
-The app is a single Blade view (`resources/views/app.blade.php`) that renders all pages at load time. Visibility is toggled with `.page.active` via `UIManager.showPage()`. The URL hash (`#home`, `#game`, `#shop`, …) drives routing in `app.js`.
-
-### Data flow
-
-1. `PageController::index()` queries packs, hero classes, rarities, rank tiers, and the current locale
-2. All data + UI strings are injected into `window.APP_DATA` as JSON in the `<head>`
-3. JS reads `APP_DATA` to populate dynamic sections (shop grid, pack opener, deck builder, admin tables)
-4. Static strings in Blade templates use `__('app.key')` which reads from the `translations` DB table
-
 ### Translations
 
 All copy lives in the `translations` database table — no language files. The custom `DatabaseLoader` swaps in transparently so `__('app.key')` continues to work everywhere.
@@ -180,60 +109,6 @@ Users have roles via a `user_roles` pivot table. Currently: `admin` and `moderat
 
 ---
 
-## API Overview
-
 All endpoints live under `/api` and require a Sanctum bearer token except auth routes.
 
-```
-POST   /api/auth/register
-POST   /api/auth/login
-POST   /api/auth/logout
-GET    /api/auth/me
-PUT    /api/auth/profile
-
-GET    /api/cards
-GET    /api/cards/mine
-GET    /api/packs
-POST   /api/packs/{pack}/open
-GET    /api/shop
-POST   /api/shop/gold
-GET    /api/decks
-POST   /api/decks
-PUT    /api/decks/{deck}
-DELETE /api/decks/{deck}
-GET    /api/stats
-
-POST   /api/game/queue
-GET    /api/game/{game}
-POST   /api/game/{game}/play-card
-POST   /api/game/{game}/attack
-POST   /api/game/{game}/end-turn
-POST   /api/game/{game}/surrender
-
-# Admin (requires admin role)
-GET    /api/admin/dashboard
-GET|POST|PUT|DELETE  /api/admin/cards/{card?}
-GET|PUT|DELETE       /api/admin/users/{user?}
-GET|POST|PUT|DELETE  /api/admin/packs/{pack?}
-GET|POST|PUT|DELETE  /api/admin/translations/{translation?}
-GET    /api/admin/translations/locales
-```
-
 ---
-
-## Environment
-
-Key `.env` values:
-
-```env
-APP_NAME="Realm Wars"
-APP_LOCALE=en
-
-DB_CONNECTION=sqlite          # default — change to mysql/pgsql as needed
-
-# Optional: real-time with Pusher
-PUSHER_APP_ID=
-PUSHER_APP_KEY=
-PUSHER_APP_SECRET=
-PUSHER_APP_CLUSTER=
-```
