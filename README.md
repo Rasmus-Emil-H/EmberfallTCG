@@ -1,58 +1,239 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Old project being bought "to life" since i have had some time on my hands (maternity leave)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Realm Wars ⚔️
 
-## About Laravel
+A browser-based fantasy card game built with Laravel 13 and Vanilla JS. Collect cards, build decks, and battle other players in real-time PvP matches — all wrapped in a dark, arcane aesthetic.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Real-time PvP battles** — turn-based card combat with live polling, minion board, and attack targeting
+- **3D pack opening** — Three.js powered pack reveal animations with per-card flip effects
+- **Deck builder** — construct 30-card decks filtered by class, rarity, and card type
+- **Rank ladder** — Bronze 10 through Legend with a star-based progression system (win streaks award bonus stars)
+- **Shop** — spend gold on card packs to expand your collection
+- **Statistics** — win rate, streak, cards played, class breakdown, and rank history
+- **Multi-language** — EN and DA, translations stored in the database and editable via the admin panel
+- **Admin panel** — full CRUD for cards, packs, users, and translations; role-based access control
+- **Responsive** — mobile-friendly layout with a slide-in drawer navigation
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Tech Stack
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Layer | Technology |
+|---|---|
+| Backend | Laravel 13, PHP 8.3 |
+| Auth | Laravel Sanctum (token-based) |
+| Database | SQLite (default) / any Laravel-supported DB |
+| Frontend | Vanilla JS (ES modules), no framework |
+| 3D | Three.js 0.160 (CDN import map) |
+| Real-time | HTTP polling (Pusher-ready) |
+| CSS | Custom properties, CSS Grid, Glassmorphism |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## Getting Started
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### Requirements
+
+- PHP 8.3+
+- Composer
+- Node.js 18+
+
+### Install
 
 ```bash
-composer require laravel/boost --dev
+git clone <repo-url>
+cd trup
 
-php artisan boost:install
+composer run setup
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The `setup` script handles everything in one go:
 
-## Contributing
+```
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate          # creates DB + seeds translations
+npm install
+npm run build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Run
 
-## Code of Conduct
+```bash
+composer run dev
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+This starts four processes concurrently:
 
-## Security Vulnerabilities
+| Process | Description |
+|---|---|
+| `php artisan serve` | Laravel dev server on port 8000 |
+| `php artisan queue:listen` | Background job worker |
+| `php artisan pail` | Log tail |
+| `npm run dev` | Vite asset watcher |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Visit [http://localhost:8000](http://localhost:8000).
 
-## License
+A test account is pre-seeded: **test@test.com / password**
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## Project Structure
+
+```
+app/
+  Http/Controllers/
+    Admin/               # Admin CRUD controllers
+      CardAdminController.php
+      DashboardController.php
+      PackAdminController.php
+      TranslationAdminController.php
+      UserAdminController.php
+    AuthController.php
+    CardController.php
+    DeckController.php
+    GameController.php
+    PackController.php
+    PageController.php   # Serves the SPA shell
+    ShopController.php
+    StatsController.php
+  Http/Middleware/
+    AdminMiddleware.php  # Requires admin role
+    SetLocale.php        # Reads locale from session
+  Models/
+    Card.php
+    Deck.php
+    Game.php
+    Pack.php
+    Role.php
+    Translation.php      # DB-backed translations
+    User.php
+  Services/
+    GameService.php      # Game logic (play card, attack, end turn)
+    RankService.php      # Star/tier calculations
+  Translation/
+    DatabaseLoader.php   # Replaces Laravel file loader with DB
+
+public/js/
+  app.js                 # SPA router + page renderers
+  api.js                 # Fetch wrapper for all API calls
+  auth.js                # Login, register, session management
+  game.js                # Game board, polling, drag-drop
+  ui.js                  # UIManager: pages, notifications, cards
+  three-cards.js         # Three.js card flip (pack opening)
+  three-game.js          # Three.js card animations (in-game)
+
+resources/views/
+  app.blade.php          # SPA shell — injects APP_DATA + includes partials
+  partials/
+    nav.blade.php        # Burger drawer navigation
+    pages/               # One file per page (login, game, admin, …)
+    overlays/            # Pack opening overlay
+
+database/migrations/     # One migration per schema change
+```
+
+---
+
+## Architecture
+
+### Single-Page Application
+
+The app is a single Blade view (`resources/views/app.blade.php`) that renders all pages at load time. Visibility is toggled with `.page.active` via `UIManager.showPage()`. The URL hash (`#home`, `#game`, `#shop`, …) drives routing in `app.js`.
+
+### Data flow
+
+1. `PageController::index()` queries packs, hero classes, rarities, rank tiers, and the current locale
+2. All data + UI strings are injected into `window.APP_DATA` as JSON in the `<head>`
+3. JS reads `APP_DATA` to populate dynamic sections (shop grid, pack opener, deck builder, admin tables)
+4. Static strings in Blade templates use `__('app.key')` which reads from the `translations` DB table
+
+### Translations
+
+All copy lives in the `translations` database table — no language files. The custom `DatabaseLoader` swaps in transparently so `__('app.key')` continues to work everywhere.
+
+Translations are cached per `locale + group` via `Cache::rememberForever()` and the cache is busted automatically when a translation is saved or deleted through the admin panel.
+
+Adding a new language: insert rows for the new locale via the admin **Translations** tab, then add the locale to `SetLocale.php`'s allowed list.
+
+### Rank System
+
+```
+Bronze  10–1   (0–29 pts)
+Silver  10–1   (30–59 pts)
+Gold    10–1   (60–89 pts)
+Platinum 10–1  (90–119 pts)
+Diamond 10–1   (120–149 pts)
+Legend         (150+ pts)
+```
+
+Each rank has 2 stars. Winning awards +1 star; a 3-game win streak awards +2. Losing costs 1 star at Gold and above (floor-protected per rank). `RankService` handles all calculations and is called from `GameController` after every game conclusion.
+
+### Roles
+
+Users have roles via a `user_roles` pivot table. Currently: `admin` and `moderator`. The `AdminMiddleware` checks `User::hasRole('admin')`. Roles are manageable in the admin Users tab.
+
+---
+
+## API Overview
+
+All endpoints live under `/api` and require a Sanctum bearer token except auth routes.
+
+```
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/logout
+GET    /api/auth/me
+PUT    /api/auth/profile
+
+GET    /api/cards
+GET    /api/cards/mine
+GET    /api/packs
+POST   /api/packs/{pack}/open
+GET    /api/shop
+POST   /api/shop/gold
+GET    /api/decks
+POST   /api/decks
+PUT    /api/decks/{deck}
+DELETE /api/decks/{deck}
+GET    /api/stats
+
+POST   /api/game/queue
+GET    /api/game/{game}
+POST   /api/game/{game}/play-card
+POST   /api/game/{game}/attack
+POST   /api/game/{game}/end-turn
+POST   /api/game/{game}/surrender
+
+# Admin (requires admin role)
+GET    /api/admin/dashboard
+GET|POST|PUT|DELETE  /api/admin/cards/{card?}
+GET|PUT|DELETE       /api/admin/users/{user?}
+GET|POST|PUT|DELETE  /api/admin/packs/{pack?}
+GET|POST|PUT|DELETE  /api/admin/translations/{translation?}
+GET    /api/admin/translations/locales
+```
+
+---
+
+## Environment
+
+Key `.env` values:
+
+```env
+APP_NAME="Realm Wars"
+APP_LOCALE=en
+
+DB_CONNECTION=sqlite          # default — change to mysql/pgsql as needed
+
+# Optional: real-time with Pusher
+PUSHER_APP_ID=
+PUSHER_APP_KEY=
+PUSHER_APP_SECRET=
+PUSHER_APP_CLUSTER=
+```

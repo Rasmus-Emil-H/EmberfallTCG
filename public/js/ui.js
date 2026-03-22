@@ -50,8 +50,8 @@ class UIManager {
             this.currentPage = pageName;
         }
 
-        // Update nav links
-        document.querySelectorAll('.nav-links a').forEach(link => {
+        // Update drawer links
+        document.querySelectorAll('.drawer-link').forEach(link => {
             link.classList.toggle('active', link.dataset.page === pageName);
         });
     }

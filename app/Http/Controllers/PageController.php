@@ -21,6 +21,8 @@ class PageController extends Controller
 
         $rankTiers = collect(RankService::TIERS)->reverse()->values();
 
-        return view('app', compact('packs', 'heroClasses', 'rarities', 'rankTiers'));
+        $locale = app()->getLocale();
+
+        return view('app', compact('packs', 'heroClasses', 'rarities', 'rankTiers', 'locale'));
     }
 }

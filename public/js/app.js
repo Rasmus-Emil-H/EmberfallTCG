@@ -215,22 +215,32 @@ class RealmWarsApp {
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.dataset.theme = savedTheme;
 
-        // Setup nav link clicks
-        document.querySelectorAll('.nav-links a[data-page]').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                window.location.hash = '#' + link.dataset.page;
-            });
+        // Burger / drawer
+        const burger  = document.getElementById('burger-btn');
+        const drawer  = document.getElementById('nav-drawer');
+        const overlay = document.getElementById('drawer-overlay');
+        const closeDrawer = () => {
+            burger.classList.remove('open');
+            drawer.classList.remove('open');
+            overlay.classList.remove('open');
+        };
+        burger?.addEventListener('click', () => {
+            const opening = !drawer.classList.contains('open');
+            burger.classList.toggle('open', opening);
+            drawer.classList.toggle('open', opening);
+            overlay.classList.toggle('open', opening);
         });
+        overlay?.addEventListener('click', closeDrawer);
+        document.getElementById('drawer-close')?.addEventListener('click', closeDrawer);
+
+        // Close drawer on any link click inside it
+        drawer?.querySelectorAll('a').forEach(a => a.addEventListener('click', closeDrawer));
 
         // Logout button
-        const logoutBtn = document.getElementById('logout-btn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => this._logout());
-        }
+        document.getElementById('logout-btn')?.addEventListener('click', () => this._logout());
 
-        // Route handler
-        window.addEventListener('hashchange', () => this._route());
+        // Route handler — also close drawer on hash change
+        window.addEventListener('hashchange', () => { closeDrawer(); this._route(); });
 
         // Initial route
         this._route();
@@ -1071,7 +1081,8 @@ class RealmWarsApp {
                 document.getElementById(`admin-tab-${tab.dataset.tab}`)?.classList.add('active');
                 if (tab.dataset.tab === 'cards') this._adminLoadCards();
                 if (tab.dataset.tab === 'users') this._adminLoadUsers();
-                if (tab.dataset.tab === 'packs') this._adminLoadPacks();
+                if (tab.dataset.tab === 'packs')         this._adminLoadPacks();
+                if (tab.dataset.tab === 'translations') this._adminLoadTranslations();
             };
         });
 
@@ -1424,6 +1435,145 @@ class RealmWarsApp {
             ui.showNotification('Pack deleted', 'success');
             this._adminLoadPacks();
         } catch (err) { ui.showNotification(err.message, 'error'); }
+    }
+
+    /* ── Translations admin ───────────────────────────── */
+
+    async _adminLoadTranslations() {
+        // Load available locales and render locale toggle buttons
+        try {
+            const locales = await api.adminGetTranslationLocales();
+            const container = document.getElementById('admin-trans-locales');
+            if (container) {
+                container.innerHTML = locales.map(l =>
+                    `<button class="btn btn-sm ${this._adminTransLocale === l ? 'btn-primary' : 'btn-ghost'} admin-trans-locale-btn" data-locale="${l}">${l.toUpperCase()}</button>`
+                ).join('');
+                container.querySelectorAll('.admin-trans-locale-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        this._adminTransLocale = btn.dataset.locale;
+                        this._adminLoadTranslations();
+                    };
+                });
+            }
+            if (!this._adminTransLocale) this._adminTransLocale = locales[0] ?? 'en';
+        } catch { this._adminTransLocale = this._adminTransLocale ?? 'en'; }
+
+        // Load translations for current locale
+        try {
+            const rows = await api.adminGetTranslations(this._adminTransLocale);
+            this._adminTransAll = rows;
+            this._adminRenderTransTable(rows);
+        } catch (err) { ui.showNotification(err.message, 'error'); }
+
+        // Wire search
+        const search = document.getElementById('admin-trans-search');
+        if (search) {
+            search.oninput = () => {
+                const q = search.value.toLowerCase();
+                const filtered = (this._adminTransAll ?? []).filter(r =>
+                    r.key.toLowerCase().includes(q) || r.value.toLowerCase().includes(q)
+                );
+                this._adminRenderTransTable(filtered);
+            };
+        }
+
+        // Wire new button
+        const newBtn = document.getElementById('admin-trans-new-btn');
+        if (newBtn) newBtn.onclick = () => this._adminOpenTransForm(null);
+        const cancelBtn = document.getElementById('admin-trans-cancel');
+        if (cancelBtn) cancelBtn.onclick = () => {
+            document.getElementById('admin-trans-form-wrap').style.display = 'none';
+        };
+
+        // Wire form submit
+        const form = document.getElementById('admin-trans-form');
+        if (form) {
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                const data = Object.fromEntries(new FormData(form));
+                const editId = form.dataset.editId;
+                try {
+                    if (editId) {
+                        await api.adminUpdateTranslation(parseInt(editId), { value: data.value });
+                        ui.showNotification('Translation updated', 'success');
+                    } else {
+                        data.locale = data.locale || this._adminTransLocale;
+                        await api.adminCreateTranslation(data);
+                        ui.showNotification('Translation created', 'success');
+                    }
+                    form.dataset.editId = '';
+                    document.getElementById('admin-trans-form-wrap').style.display = 'none';
+                    this._adminLoadTranslations();
+                } catch (err) { ui.showNotification(err.message, 'error'); }
+            };
+        }
+    }
+
+    _adminRenderTransTable(rows) {
+        const tbody = document.getElementById('admin-trans-tbody');
+        if (!tbody) return;
+        if (!rows.length) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;opacity:.6">No translations found</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(r => `
+            <tr>
+                <td><code style="font-size:.8rem">${r.key}</code></td>
+                <td class="admin-trans-value-cell">${this._escapeHtml(r.value)}</td>
+                <td class="admin-actions">
+                    <button class="btn btn-ghost btn-xs admin-trans-edit-btn" data-id="${r.id}">Edit</button>
+                    <button class="btn btn-danger btn-xs admin-trans-del-btn" data-id="${r.id}">Del</button>
+                </td>
+            </tr>`).join('');
+
+        tbody.querySelectorAll('.admin-trans-edit-btn').forEach(btn => {
+            btn.onclick = () => {
+                const row = rows.find(r => r.id === parseInt(btn.dataset.id));
+                if (row) this._adminOpenTransForm(row);
+            };
+        });
+        tbody.querySelectorAll('.admin-trans-del-btn').forEach(btn => {
+            btn.onclick = () => this._adminDeleteTranslation(parseInt(btn.dataset.id));
+        });
+    }
+
+    _adminOpenTransForm(row) {
+        const wrap = document.getElementById('admin-trans-form-wrap');
+        const form = document.getElementById('admin-trans-form');
+        const title = document.getElementById('admin-trans-form-title');
+        if (!wrap || !form) return;
+
+        if (row) {
+            title.textContent = 'Edit Translation';
+            form.elements['locale'].value = row.locale;
+            form.elements['locale'].readOnly = true;
+            form.elements['key'].value = row.key;
+            form.elements['key'].readOnly = true;
+            form.elements['value'].value = row.value;
+            form.dataset.editId = row.id;
+        } else {
+            title.textContent = 'New Translation';
+            form.reset();
+            form.elements['locale'].value = this._adminTransLocale ?? 'en';
+            form.elements['locale'].readOnly = false;
+            form.elements['key'].readOnly = false;
+            form.dataset.editId = '';
+        }
+        wrap.style.display = '';
+        form.elements['value'].focus();
+    }
+
+    async _adminDeleteTranslation(id) {
+        if (!confirm('Delete this translation?')) return;
+        try {
+            await api.adminDeleteTranslation(id);
+            ui.showNotification('Translation deleted', 'success');
+            this._adminLoadTranslations();
+        } catch (err) { ui.showNotification(err.message, 'error'); }
+    }
+
+    _escapeHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
     async _saveDeck() {

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\CardAdminController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PackAdminController;
+use App\Http\Controllers\Admin\TranslationAdminController;
 use App\Http\Controllers\Admin\UserAdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CardController;
@@ -58,6 +59,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/packs',         [PackAdminController::class,  'store']);
         Route::put('/packs/{pack}',   [PackAdminController::class,  'update']);
         Route::delete('/packs/{pack}',[PackAdminController::class,  'destroy']);
+
+        Route::get('/translations/locales',               [TranslationAdminController::class, 'locales']);
+        Route::get('/translations',                       [TranslationAdminController::class, 'index']);
+        Route::post('/translations',                      [TranslationAdminController::class, 'store']);
+        Route::put('/translations/{translation}',         [TranslationAdminController::class, 'update']);
+        Route::delete('/translations/{translation}',      [TranslationAdminController::class, 'destroy']);
     });
 
     // Game

@@ -95,7 +95,7 @@ export class GameManager {
         }
 
         this.pollInterval = setInterval(() => this._poll(), 2500);
-        ui.showNotification('Match found! Game starting!', 'success');
+        ui.showNotification(window.APP_DATA?.t?.match_found ?? 'Match found! Game starting.', 'success');
     }
 
     /* ── drag-drop ───────────────────────────────── */
@@ -766,12 +766,12 @@ export class GameManager {
         const rankRowId = 'game-over-rank-row';
         overlay.innerHTML = `
             <div class="game-over-card">
-                <div class="game-over-result ${win ? 'victory' : 'defeat'}">${win ? '⚔ VICTORY!' : '💀 DEFEAT'}</div>
-                <p>${win ? 'You have conquered the realm!' : 'Better luck next battle, champion.'}</p>
-                <div id="${rankRowId}" class="game-over-rank-row">⏳ Updating rank…</div>
+                <div class="game-over-result ${win ? 'victory' : 'defeat'}">${win ? (window.APP_DATA?.t?.victory ?? '⚔ VICTORY!') : (window.APP_DATA?.t?.defeat ?? '💀 DEFEAT')}</div>
+                <p>${win ? (window.APP_DATA?.t?.you_conquered ?? 'You have conquered the realm!') : (window.APP_DATA?.t?.better_luck ?? 'Better luck next battle, champion.')}</p>
+                <div id="${rankRowId}" class="game-over-rank-row">${window.APP_DATA?.t?.rank_updating ?? '⏳ Updating rank…'}</div>
                 <div class="game-over-actions">
-                    <button class="btn btn-primary" id="go-btn-home">Return Home</button>
-                    <button class="btn btn-ghost"   id="go-btn-again">Play Again</button>
+                    <button class="btn btn-primary" id="go-btn-home">${window.APP_DATA?.t?.return_home ?? 'Return Home'}</button>
+                    <button class="btn btn-ghost"   id="go-btn-again">${window.APP_DATA?.t?.play_again ?? 'Play Again'}</button>
                 </div>
             </div>`;
         this._gameOverOverlay = overlay;
@@ -807,7 +807,7 @@ export class GameManager {
         toast.innerHTML = `
             <div class="rank-up-emoji">${rank.emoji}</div>
             <div class="rank-up-title">${rank.label}</div>
-            <div class="rank-up-label">+1 Star earned!</div>`;
+            <div class="rank-up-label">${window.APP_DATA?.t?.star_earned ?? '+1 Star earned!'}</div>`;
         document.body.appendChild(toast);
         requestAnimationFrame(() => toast.classList.add('visible'));
         setTimeout(() => {
