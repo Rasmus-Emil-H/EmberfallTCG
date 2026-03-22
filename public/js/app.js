@@ -5,12 +5,201 @@
 import api from './api.js';
 import auth from './auth.js';
 import ui from './ui.js';
-import { PackOpeningScene } from './three-cards.js';
 import { GameManager } from './game.js';
+
+const POC_CLASS_GRAD = {
+    warrior: 'linear-gradient(160deg,#7f1d1d,#b45309)',
+    mage:    'linear-gradient(160deg,#1e3a5f,#4c1d95)',
+    ranger:  'linear-gradient(160deg,#14532d,#065f46)',
+    paladin: 'linear-gradient(160deg,#78350f,#92400e)',
+    druid:   'linear-gradient(160deg,#14532d,#1a2e05)',
+    neutral: 'linear-gradient(160deg,#1f2937,#374151)',
+};
+const POC_CLASS_EMOJI  = { warrior:'⚔️', mage:'🔮', ranger:'🏹', paladin:'🛡️', druid:'🌿', neutral:'⭐' };
+const POC_RARITY_COLOR = { common:'#6b7280', rare:'#3b82f6', epic:'#a855f7', legendary:'#f59e0b' };
+
+class PackOpener {
+    constructor() {
+        this._revealedCount = 0;
+        this._totalCards    = 0;
+        this._bound         = false;
+    }
+
+    _bind() {
+        if (this._bound) return;
+        this._bound = true;
+        document.getElementById('pac-close').addEventListener('click', () => this.close());
+        document.getElementById('pac-collect-btn').addEventListener('click', () => this.close());
+    }
+
+    show(cards, pack) {
+        this._bind();
+        this._revealedCount = 0;
+        this._totalCards    = cards.length;
+
+        /* determine pack type */
+        const name = (pack.name || '').toLowerCase();
+        const type = name.includes('legendary') ? 'legendary'
+                   : name.includes('arcane')    ? 'arcane'
+                   : 'starter';
+
+        /* configure pack visual */
+        const symbols = { legendary:'✨', arcane:'🔮', starter:'📦' };
+        document.getElementById('pac-pack-symbol').textContent = symbols[type];
+        document.getElementById('pac-pack-name').textContent   = pack.name;
+        document.getElementById('pac-bg-glow').dataset.type    = type;
+        document.getElementById('pac-pack').dataset.type       = type;
+
+        /* reset stages */
+        const stageCards = document.getElementById('pac-stage-cards');
+        stageCards.classList.add('pac-stage--hidden');
+        stageCards.style.display = '';
+        document.getElementById('pac-stage-pack').classList.remove('pac-stage--hidden');
+
+        const packEl = document.getElementById('pac-pack');
+        packEl.classList.remove('pac-pack--bursting');
+        packEl.style.display = '';
+
+        document.getElementById('pac-collect-btn').style.display = 'none';
+        document.getElementById('pac-cards-hint').style.opacity  = '1';
+
+        /* store cards for reveal */
+        this._cards = cards;
+
+        /* wire pack click */
+        packEl.onclick = () => this._burstOpen();
+
+        /* show overlay */
+        const overlay = document.getElementById('pack-overlay');
+        overlay.style.display = 'flex';
+        requestAnimationFrame(() => overlay.classList.add('active'));
+    }
+
+    async _burstOpen() {
+        const packEl  = document.getElementById('pac-pack');
+        const wrapEl  = document.getElementById('pac-pack-wrap');
+        packEl.onclick = null;
+
+        packEl.classList.add('pac-pack--bursting');
+        wrapEl.classList.add('pac-wrap--flash');
+
+        await this._sleep(550);
+
+        document.getElementById('pac-stage-pack').classList.add('pac-stage--hidden');
+
+        const stageCards = document.getElementById('pac-stage-cards');
+        stageCards.classList.remove('pac-stage--hidden');
+
+        this._buildCards(this._cards);
+    }
+
+    _buildCards(cards) {
+        const row = document.getElementById('pac-cards-row');
+        row.innerHTML = '';
+
+        cards.forEach((card, i) => {
+            const el = this._makeFlipCard(card, i);
+            row.appendChild(el);
+        });
+
+        document.getElementById('pac-collect-btn').style.display = 'none';
+        document.getElementById('pac-cards-hint').textContent    = 'Click each card to reveal';
+        document.getElementById('pac-cards-hint').style.opacity  = '1';
+    }
+
+    _makeFlipCard(card, index) {
+        const cls    = (card.hero_class || 'neutral').toLowerCase();
+        const rarity = card.rarity || 'common';
+
+        const el = document.createElement('div');
+        el.className         = `poc-card poc-card--${rarity}`;
+        el.dataset.index     = index;
+        el.style.animationDelay = `${index * 100}ms`;
+        el.classList.add('poc-fly-in');
+
+        el.innerHTML = `
+            <div class="poc-inner">
+                <div class="poc-front" style="--class-grad:${POC_CLASS_GRAD[cls]||POC_CLASS_GRAD.neutral};--rarity-color:${POC_RARITY_COLOR[rarity]||'#6b7280'}">
+                    <div class="poc-mana">${card.mana_cost}</div>
+                    <div class="poc-art">${POC_CLASS_EMOJI[cls]||'⭐'}</div>
+                    <div class="poc-name">${card.name}</div>
+                    <div class="poc-type">${card.rarity} · ${card.card_type}</div>
+                    <div class="poc-desc">${(card.description||'').slice(0,65)}</div>
+                    ${card.card_type !== 'spell'
+                        ? `<div class="poc-stats"><span class="poc-atk">⚔ ${card.attack??0}</span><span class="poc-hp">♥ ${card.health??0}</span></div>`
+                        : `<div class="poc-spell-badge">✦ SPELL</div>`}
+                </div>
+                <div class="poc-back">
+                    <div class="poc-back-emblem">⚔</div>
+                    <div class="poc-back-title">REALM WARS</div>
+                </div>
+            </div>`;
+
+        el.addEventListener('click', () => this._revealCard(el, card));
+        return el;
+    }
+
+    async _revealCard(el, card) {
+        if (el.classList.contains('poc-revealed') || el.classList.contains('poc-revealing')) return;
+        el.classList.add('poc-revealing');
+        el.classList.add('poc-revealed');
+        await this._sleep(320);
+        this._spawnBurst(el, card.rarity);
+        el.classList.remove('poc-revealing');
+        this._revealedCount++;
+        if (this._revealedCount >= this._totalCards) {
+            await this._sleep(400);
+            document.getElementById('pac-cards-hint').style.opacity = '0';
+            const btn = document.getElementById('pac-collect-btn');
+            btn.style.display = 'inline-block';
+        }
+    }
+
+    _spawnBurst(cardEl, rarity) {
+        const color = POC_RARITY_COLOR[rarity] || '#9ca3af';
+        const count = rarity === 'legendary' ? 28 : rarity === 'epic' ? 18 : rarity === 'rare' ? 14 : 8;
+        const rect  = cardEl.getBoundingClientRect();
+        const cx    = rect.left + rect.width  / 2;
+        const cy    = rect.top  + rect.height / 2;
+
+        for (let i = 0; i < count; i++) {
+            const dot   = document.createElement('div');
+            dot.className = 'poc-particle';
+            const angle = (i / count) * 360 + Math.random() * (360 / count);
+            const dist  = 50 + Math.random() * 90;
+            const size  = rarity === 'legendary' ? 7 : rarity === 'epic' ? 6 : 5;
+            dot.style.cssText = `left:${cx}px;top:${cy}px;background:${color};width:${size}px;height:${size}px;--dx:${Math.cos(angle*Math.PI/180)*dist}px;--dy:${Math.sin(angle*Math.PI/180)*dist}px;animation-delay:${Math.random()*80}ms;`;
+            document.body.appendChild(dot);
+            setTimeout(() => dot.remove(), 900);
+        }
+
+        if (rarity === 'legendary') {
+            cardEl.classList.add('poc-legendary-reveal');
+            setTimeout(() => cardEl.classList.remove('poc-legendary-reveal'), 1200);
+        } else if (rarity === 'epic') {
+            cardEl.classList.add('poc-epic-reveal');
+            setTimeout(() => cardEl.classList.remove('poc-epic-reveal'), 800);
+        } else if (rarity === 'rare') {
+            cardEl.classList.add('poc-rare-reveal');
+            setTimeout(() => cardEl.classList.remove('poc-rare-reveal'), 600);
+        }
+    }
+
+    close() {
+        const overlay = document.getElementById('pack-overlay');
+        overlay.classList.remove('active');
+        overlay.addEventListener('transitionend', () => {
+            overlay.style.display = 'none';
+        }, { once: true });
+        this._revealedCount = 0;
+    }
+
+    _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+}
 
 class RealmWarsApp {
     constructor() {
-        this.packOpeningScene = null;
+        this.packOpener = new PackOpener();
         this.gameManager = null;
         this.currentPackId = null;
         this.allCards = [];
@@ -55,10 +244,6 @@ class RealmWarsApp {
         document.body.classList.toggle('game-mode', page === 'game');
 
         // Destroy previous scenes
-        if (page !== 'open-packs' && this.packOpeningScene) {
-            this.packOpeningScene.destroy();
-            this.packOpeningScene = null;
-        }
         if (page !== 'game' && this.gameManager) {
             this.gameManager.destroy();
             this.gameManager = null;
@@ -356,51 +541,18 @@ class RealmWarsApp {
         }
 
         const openBtn = document.getElementById('pack-open-btn');
-        openBtn.disabled = true;
+        openBtn.disabled    = true;
         openBtn.textContent = 'Opening...';
 
         try {
             const result = await api.openPack(this.currentPackId);
-
-            // Update gold
             auth.updateGold(result.gold_remaining);
             ui.updateGoldDisplay(result.gold_remaining);
-
-            // Show 3D pack opening
-            const container = document.getElementById('three-pack-container');
-            container.style.display = 'block';
-
-            // Destroy previous scene if any
-            if (this.packOpeningScene) {
-                this.packOpeningScene.destroy();
-            }
-
-            const packType = pack.name.toLowerCase().includes('legendary') ? 'legendary' :
-                             pack.name.toLowerCase().includes('arcane') ? 'arcane' : 'starter';
-
-            this.packOpeningScene = new PackOpeningScene(container);
-            this.packOpeningScene.loadCards(result.cards, packType);
-
-            // Start reveal animation
-            await this.packOpeningScene.animatePackReveal();
-
-            // Show revealed cards below
-            const revealedContainer = document.getElementById('revealed-cards');
-            if (revealedContainer) {
-                revealedContainer.innerHTML = '';
-                result.cards.forEach(card => {
-                    const el = ui.createCardElement(card);
-                    revealedContainer.appendChild(el);
-                });
-            }
-
-            ui.showNotification(`You opened ${result.cards.length} cards!`, 'success');
-
+            this.packOpener.show(result.cards, pack);
         } catch (err) {
-            const msg = err.data?.error || err.message;
-            ui.showNotification(msg, 'error');
+            ui.showNotification(err.data?.error || err.message, 'error');
         } finally {
-            openBtn.disabled = false;
+            openBtn.disabled    = false;
             openBtn.textContent = 'Open Pack';
         }
     }

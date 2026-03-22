@@ -108,25 +108,6 @@
 
     <!-- HOME PAGE -->
     <div id="home-page" class="page">
-        <div class="dashboard-hero">
-            <h1>Welcome, <span id="welcome-name">Champion</span></h1>
-            <p>The realm awaits your command. Build your deck, collect cards, and conquer your enemies.</p>
-        </div>
-
-        <div class="user-stats">
-            <div class="stat-item">
-                <div class="stat-value" id="home-gold" data-target="0">0</div>
-                <div class="stat-label">🪙 Gold</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="home-cards" data-target="0">0</div>
-                <div class="stat-label">🃏 Cards</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="home-decks" data-target="0">0</div>
-                <div class="stat-label">📋 Decks</div>
-            </div>
-        </div>
 
         <div class="dashboard-grid">
             <div class="dashboard-card glass-card" onclick="window.location.hash='#game'">
@@ -244,11 +225,6 @@
                 ✨ Open Pack
             </button>
 
-            <div id="three-pack-container"></div>
-
-            <div id="revealed-cards" class="revealed-cards-grid" style="margin-top:20px;display:flex;flex-wrap:wrap;gap:15px;justify-content:center;">
-                <!-- Revealed cards shown here -->
-            </div>
         </div>
     </div>
 
@@ -574,6 +550,33 @@
     </div>
 
 </div><!-- #app -->
+
+<!-- PACK OPENING OVERLAY -->
+<div id="pack-overlay" class="pack-overlay">
+    <button class="pac-close" id="pac-close">✕</button>
+
+    <!-- Stage 1: Sealed pack -->
+    <div class="pac-stage" id="pac-stage-pack">
+        <div class="pac-bg-glow" id="pac-bg-glow"></div>
+        <div class="pac-pack-wrap" id="pac-pack-wrap">
+            <div class="pac-ring pac-ring-outer"></div>
+            <div class="pac-ring pac-ring-inner"></div>
+            <div class="pac-pack" id="pac-pack">
+                <div class="pac-pack-sheen"></div>
+                <div class="pac-pack-symbol" id="pac-pack-symbol">📦</div>
+                <div class="pac-pack-name" id="pac-pack-name">Starter Pack</div>
+            </div>
+        </div>
+        <p class="pac-hint pac-hint--pulse">Click to open</p>
+    </div>
+
+    <!-- Stage 2: Card reveal -->
+    <div class="pac-stage pac-stage--hidden" id="pac-stage-cards">
+        <div class="pac-cards-row" id="pac-cards-row"></div>
+        <p class="pac-hint" id="pac-cards-hint">Click each card to reveal</p>
+        <button class="btn btn-gold pac-collect-btn" id="pac-collect-btn" style="display:none">✨ Collect Cards</button>
+    </div>
+</div>
 
 <!-- Notifications Container -->
 <div id="notifications"></div>
