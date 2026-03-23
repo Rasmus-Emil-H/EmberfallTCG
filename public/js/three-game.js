@@ -1,5 +1,5 @@
 /**
- * Realm Wars - Three.js Game Board (board + heroes only, no hand)
+ * Emberfall - Three.js Game Board (board + heroes only, no hand)
  */
 
 import * as THREE from 'three';

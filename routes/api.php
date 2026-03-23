@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\CardAdminController;
+use App\Http\Controllers\ChallengeController;
+use App\Http\Controllers\FriendController;
 use App\Http\Controllers\QuickPayController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PackAdminController;
@@ -29,6 +31,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Stats
     Route::get('/stats', [StatsController::class, 'index']);
+
+    // Friends
+    Route::get('/friends',                     [FriendController::class, 'index']);
+    Route::get('/friends/search',              [FriendController::class, 'search']);
+    Route::post('/friends',                    [FriendController::class, 'store']);
+    Route::put('/friends/{friendship}',        [FriendController::class, 'update']);
+    Route::delete('/friends/{friend}',         [FriendController::class, 'destroy']);
+
+    // Challenges
+    Route::get('/challenges',                          [ChallengeController::class, 'index']);
+    Route::post('/challenges',                         [ChallengeController::class, 'store']);
+    Route::post('/challenges/{challenge}/accept',      [ChallengeController::class, 'accept']);
+    Route::post('/challenges/{challenge}/decline',     [ChallengeController::class, 'decline']);
 
     // Cards
     Route::get('/cards', [CardController::class, 'index']);

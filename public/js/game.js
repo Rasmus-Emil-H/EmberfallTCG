@@ -1,5 +1,5 @@
 /**
- * Realm Wars – Game Logic Manager (2D HTML board)
+ * Emberfall – Game Logic Manager (2D HTML board)
  */
 
 import api from './api.js';
@@ -27,7 +27,7 @@ export class GameManager {
 
     /* ── matchmaking ─────────────────────────────── */
 
-    async startMatchmaking(playerId) {
+    async startMatchmaking(playerId, directGameId = null) {
         this.playerId = playerId;
         this._gameOverShown = false;
 
@@ -37,14 +37,20 @@ export class GameManager {
         if (active)  active.style.display  = 'none';
 
         try {
-            const result = await api.joinQueue();
-            this.gameId   = result.game.id;
-            this.gameData = result.game;
-
-            if (result.status === 'active') {
-                await this._startGame();
+            if (directGameId) {
+                // Friend challenge — poll the specific game until it goes active
+                this.gameId = directGameId;
+                this._pollForChallenge(directGameId);
             } else {
-                this._pollForMatch();
+                const result = await api.joinQueue();
+                this.gameId   = result.game.id;
+                this.gameData = result.game;
+
+                if (result.status === 'active') {
+                    await this._startGame();
+                } else {
+                    this._pollForMatch();
+                }
             }
         } catch (err) {
             ui.showNotification('Failed to join queue: ' + err.message, 'error');
@@ -59,6 +65,19 @@ export class GameManager {
                     clearInterval(this.matchPollInterval);
                     this.gameId   = result.game.id;
                     this.gameData = result.game;
+                    await this._startGame();
+                }
+            } catch {}
+        }, 2000);
+    }
+
+    _pollForChallenge(gameId) {
+        this.matchPollInterval = setInterval(async () => {
+            try {
+                const result = await api.getGame(gameId);
+                if (result.status === 'active') {
+                    clearInterval(this.matchPollInterval);
+                    this.gameData = result;
                     await this._startGame();
                 }
             } catch {}

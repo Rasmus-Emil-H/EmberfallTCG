@@ -2,7 +2,7 @@
 <div id="login-page" class="page">
     <div class="auth-container">
         <div class="auth-card">
-            <h1 class="auth-title">⚔️ REALM WARS</h1>
+            <h1 class="auth-title">⚔️ <?= env('APP_NAME') ?></h1>
             <p class="auth-subtitle">{{ __('app.login_subtitle') }}</p>
             <form id="login-form">
                 <div class="input-float">

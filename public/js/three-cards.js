@@ -1,5 +1,5 @@
 /**
- * Realm Wars - Three.js Card Renderer
+ * Emberfall - Three.js Card Renderer
  * Pack Opening Scene with 3D card animations
  */
 
@@ -220,7 +220,7 @@ export class CardMesh {
         bctx.font = 'bold 14px Georgia';
         bctx.textAlign = 'center';
         bctx.textBaseline = 'middle';
-        bctx.fillText('REALM WARS', 128, 310);
+        bctx.fillText((window.APP_DATA?.app_name ?? 'Emberfall').toUpperCase(), 128, 310);
 
         const backTexture = new THREE.CanvasTexture(backCanvas);
         const backMat = new THREE.MeshPhongMaterial({

@@ -1,5 +1,5 @@
 /**
- * Realm Wars API Client
+ * Emberfall API Client
  */
 
 const BASE_URL = '/api';
@@ -194,6 +194,17 @@ class ApiClient {
     adminDeletePack(id)           { return this.delete(`/admin/packs/${id}`); }
 
     purchaseGold(packageId)               { return this.post('/shop/purchase', { package_id: packageId }); }
+
+    getFriends()                          { return this.get('/friends'); }
+    searchUsers(q)                        { return this.get(`/friends/search?q=${encodeURIComponent(q)}`); }
+    sendFriendRequest(userId)             { return this.post('/friends', { user_id: userId }); }
+    respondFriendRequest(id, status)      { return this.put(`/friends/${id}`, { status }); }
+    unfriend(userId)                      { return this.delete(`/friends/${userId}`); }
+
+    getChallenges()                       { return this.get('/challenges'); }
+    sendChallenge(userId)                 { return this.post('/challenges', { user_id: userId }); }
+    acceptChallenge(id)                   { return this.post(`/challenges/${id}/accept`); }
+    declineChallenge(id)                  { return this.post(`/challenges/${id}/decline`); }
 
     adminGetTranslationLocales()              { return this.get('/admin/translations/locales'); }
     adminGetTranslations(locale)              { return this.get(`/admin/translations?locale=${locale}`); }

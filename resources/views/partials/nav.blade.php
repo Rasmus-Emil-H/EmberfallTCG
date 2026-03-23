@@ -4,7 +4,7 @@
         <span></span><span></span><span></span>
     </button>
     <div class="nav-logo" onclick="window.location.hash='#home'">
-        <span class="logo-realm">REALM</span><span class="logo-wars">WARS</span>
+        <span class="logo-realm">{{ strtoupper(config('app.name')) }}</span>
     </div>
     <div class="nav-right">
         <div class="nav-rank" id="nav-rank" data-auth="required">
@@ -42,6 +42,7 @@
         </div>
         <div class="drawer-section" data-auth="required">
             <div class="drawer-section-label">{{ __('app.nav_account') }}</div>
+            <a href="#friends" class="drawer-link nav-link" data-page="friends">🤝 <span>{{ __('app.nav_friends') }}</span><span class="nav-badge" id="nav-friends-badge" style="display:none"></span></a>
             <a href="#shop"    class="drawer-link nav-link" data-page="shop">🏪 <span>{{ __('app.nav_shop') }}</span></a>
             <a href="#stats"   class="drawer-link nav-link" data-page="stats">📊 <span>{{ __('app.nav_statistics') }}</span></a>
             <a href="#options" class="drawer-link nav-link" data-page="options">⚙️ <span>{{ __('app.nav_settings') }}</span></a>

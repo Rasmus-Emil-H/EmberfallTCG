@@ -1,5 +1,5 @@
 /**
- * Realm Wars UI Manager
+ * Emberfall UI Manager
  */
 
 import { CLASS_EMOJI } from './constants.js';

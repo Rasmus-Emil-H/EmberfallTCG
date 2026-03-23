@@ -1,6 +1,6 @@
 Old project being bought "to life" since i have had some time on my hands (maternity leave)
 
-# Realm Wars ⚔️
+# Emberfall ⚔️
 
 A browser-based fantasy card game built with Laravel 13 and Vanilla JS. Collect cards, build decks, and battle other players in real-time PvP matches — all wrapped in a dark, arcane aesthetic.
 

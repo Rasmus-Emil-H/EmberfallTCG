@@ -1,5 +1,5 @@
 /**
- * Realm Wars – Shared constants
+ * Emberfall – Shared constants
  * Single source of truth for class/rarity mappings used across all JS modules.
  */
 

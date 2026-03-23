@@ -2,10 +2,7 @@
    Emberfall — Modern Dark Gaming UI
    ============================================ */
 
-/* 1. FONTS */
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
-
-/* 2. DESIGN TOKENS */
+/* 1. DESIGN TOKENS */
 :root {
   /* Backgrounds */
   --bg-void: #020208;
@@ -703,6 +700,28 @@ body.game-mode #app  { margin-top: 0; }
   letter-spacing: 0.08em;
   color: var(--text-secondary);
   margin-bottom: 8px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-bright);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  transition: border-color var(--transition-fast);
+  outline: none;
+}
+
+.form-control:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(124,58,237,0.18);
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
 }
 
 .form-group input,

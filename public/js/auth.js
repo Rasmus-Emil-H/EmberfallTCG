@@ -1,5 +1,5 @@
 /**
- * Realm Wars Auth Manager
+ * Emberfall Auth Manager
  */
 
 import api from './api.js';

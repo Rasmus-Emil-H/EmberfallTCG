@@ -1,5 +1,5 @@
 /**
- * Realm Wars - Main App Entry Point
+ * Emberfall - Main App Entry Point
  */
 
 import api from './api.js';
@@ -121,7 +121,7 @@ class PackOpener {
                 </div>
                 <div class="poc-back">
                     <div class="poc-back-emblem">⚔</div>
-                    <div class="poc-back-title">REALM WARS</div>
+                    <div class="poc-back-title">${(window.APP_DATA?.app_name ?? 'Emberfall').toUpperCase()}</div>
                 </div>
             </div>`;
 
@@ -266,11 +266,12 @@ class RealmWarsApp {
 
         ui.setNavVisibility(auth.isLoggedIn());
 
-        // Keep nav rank + admin link current
+        // Keep nav rank + admin link + friend badge current
         const cachedUser = auth.getUser();
         if (cachedUser?.rank) this._updateRankDisplay(cachedUser.rank);
         const adminLink = document.querySelector('.nav-link--admin');
         if (adminLink) adminLink.style.display = cachedUser?.is_admin ? '' : 'none';
+        this._updateFriendBadge(cachedUser);
 
         switch (page) {
             case 'login': this._renderLogin(); break;
@@ -284,6 +285,7 @@ class RealmWarsApp {
             case 'decks': await this._renderDecks(); break;
             case 'stats': await this._renderStats(); break;
             case 'options': await this._renderOptions(); break;
+            case 'friends': await this._renderFriends(); break;
             case 'admin': await this._renderAdmin(); break;
             default: await this._renderHome(); break;
         }
@@ -340,7 +342,7 @@ class RealmWarsApp {
 
                 try {
                     await auth.register(name, email, password, confirm);
-                    ui.showNotification('Welcome to Realm Wars, ' + name + '!', 'success');
+                    ui.showNotification('Welcome to ' + (window.APP_DATA?.app_name ?? 'Emberfall') + ', ' + name + '!', 'success');
                     window.location.hash = '#home';
                 } catch (err) {
                     const errors = err.data?.errors;
@@ -701,10 +703,15 @@ class RealmWarsApp {
             this.gameManager = null;
         }
 
-        const canvas = document.getElementById('game-canvas-container');
+        // Support direct game join from friend challenge: #game?g=123
+        const hashParams = new URLSearchParams(window.location.hash.split('?')[1] ?? '');
+        const directGameId = hashParams.get('g') ? parseInt(hashParams.get('g')) : null;
+        if (directGameId) {
+            history.replaceState(null, '', '#game');
+        }
+
         this.gameManager = new GameManager();
-        // game.js owns showing/hiding the matchmaking overlay and #game-active
-        this.gameManager.startMatchmaking(user.id);
+        this.gameManager.startMatchmaking(user.id, directGameId);
     }
 
     // ===== DECKS =====
@@ -1620,6 +1627,219 @@ class RealmWarsApp {
 
     _escapeHtml(str) {
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ===== FRIENDS =====
+
+    _updateFriendBadge(user) {
+        const badge = document.getElementById('nav-friends-badge');
+        if (!badge) return;
+        const count = (user?.pending_friend_requests ?? 0) + (user?.pending_challenges ?? 0);
+        badge.textContent = count;
+        badge.style.display = count > 0 ? '' : 'none';
+    }
+
+    async _renderFriends() {
+        ui.showPage('friends');
+        ui.showLoadingSpinner();
+
+        try {
+            const [{ friends, pending }, challenges, user] = await Promise.all([
+                api.getFriends(),
+                api.getChallenges(),
+                auth.refreshUser(),
+            ]);
+            ui.hideLoadingSpinner();
+            this._updateFriendBadge(user);
+
+            this._renderChallengesList(challenges);
+            this._renderPendingRequests(pending);
+            this._renderFriendsList(friends);
+            this._wireFriendSearch();
+
+        } catch (err) {
+            ui.hideLoadingSpinner();
+            ui.showNotification(err.message, 'error');
+        }
+    }
+
+    _renderChallengesList(challenges) {
+        const section = document.getElementById('friends-challenges-section');
+        const list    = document.getElementById('friends-challenges-list');
+        if (!section || !list) return;
+
+        if (!challenges.length) { section.style.display = 'none'; return; }
+        section.style.display = '';
+
+        list.innerHTML = challenges.map(c => `
+            <div class="friend-card challenge-card" data-challenge-id="${c.id}">
+                <div class="friend-avatar">${c.challenger.name[0].toUpperCase()}</div>
+                <div class="friend-info">
+                    <div class="friend-name">${this._escapeHtml(c.challenger.name)}</div>
+                    <div class="friend-status">wants to battle you!</div>
+                </div>
+                <div class="friend-actions">
+                    <button class="btn btn-primary btn-sm challenge-accept-btn" data-id="${c.id}">⚔️ Accept</button>
+                    <button class="btn btn-ghost btn-sm challenge-decline-btn" data-id="${c.id}">Decline</button>
+                </div>
+            </div>`).join('');
+
+        list.querySelectorAll('.challenge-accept-btn').forEach(btn => {
+            btn.onclick = async () => {
+                try {
+                    const { game_id } = await api.acceptChallenge(parseInt(btn.dataset.id));
+                    window.location.hash = `#game?g=${game_id}`;
+                } catch (err) { ui.showNotification(err.message, 'error'); }
+            };
+        });
+        list.querySelectorAll('.challenge-decline-btn').forEach(btn => {
+            btn.onclick = async () => {
+                try {
+                    await api.declineChallenge(parseInt(btn.dataset.id));
+                    this._renderFriends();
+                } catch (err) { ui.showNotification(err.message, 'error'); }
+            };
+        });
+    }
+
+    _renderPendingRequests(pending) {
+        const section = document.getElementById('friends-pending-section');
+        const list    = document.getElementById('friends-pending-list');
+        if (!section || !list) return;
+
+        if (!pending.length) { section.style.display = 'none'; return; }
+        section.style.display = '';
+
+        list.innerHTML = pending.map(u => `
+            <div class="friend-card" data-friendship-id="${u.friendship_id}">
+                <div class="friend-avatar">${u.name[0].toUpperCase()}</div>
+                <div class="friend-info">
+                    <div class="friend-name">${this._escapeHtml(u.name)}</div>
+                    <div class="friend-status">Sent you a friend request</div>
+                </div>
+                <div class="friend-actions">
+                    <button class="btn btn-primary btn-sm friend-accept-btn" data-id="${u.friendship_id}">Accept</button>
+                    <button class="btn btn-ghost btn-sm friend-decline-btn" data-id="${u.friendship_id}">Decline</button>
+                </div>
+            </div>`).join('');
+
+        list.querySelectorAll('.friend-accept-btn').forEach(btn => {
+            btn.onclick = async () => {
+                try {
+                    await api.respondFriendRequest(parseInt(btn.dataset.id), 'accepted');
+                    ui.showNotification('Friend request accepted!', 'success');
+                    this._renderFriends();
+                } catch (err) { ui.showNotification(err.message, 'error'); }
+            };
+        });
+        list.querySelectorAll('.friend-decline-btn').forEach(btn => {
+            btn.onclick = async () => {
+                try {
+                    await api.respondFriendRequest(parseInt(btn.dataset.id), 'declined');
+                    this._renderFriends();
+                } catch (err) { ui.showNotification(err.message, 'error'); }
+            };
+        });
+    }
+
+    _renderFriendsList(friends) {
+        const list  = document.getElementById('friends-list');
+        const empty = document.getElementById('friends-empty');
+        if (!list) return;
+
+        if (!friends.length) {
+            if (empty) empty.style.display = '';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+
+        list.innerHTML = friends.map(f => `
+            <div class="friend-card" data-friend-id="${f.id}">
+                <div class="friend-avatar ${f.is_online ? 'online' : ''}">${f.name[0].toUpperCase()}</div>
+                <div class="friend-info">
+                    <div class="friend-name">${this._escapeHtml(f.name)}</div>
+                    <div class="friend-status ${f.is_online ? 'online' : ''}">
+                        ${f.is_online ? '● Online' : f.last_seen}
+                    </div>
+                </div>
+                <div class="friend-actions">
+                    <button class="btn btn-primary btn-sm friend-challenge-btn" data-id="${f.id}" ${!f.is_online ? 'disabled title="Player is offline"' : ''}>⚔️ Challenge</button>
+                    <button class="btn btn-ghost btn-sm friend-remove-btn" data-id="${f.id}">✕</button>
+                </div>
+            </div>`).join('');
+
+        list.querySelectorAll('.friend-challenge-btn').forEach(btn => {
+            if (btn.disabled) return;
+            btn.onclick = async () => {
+                btn.disabled = true;
+                try {
+                    const { game_id } = await api.sendChallenge(parseInt(btn.dataset.id));
+                    ui.showNotification('Challenge sent! Heading to game…', 'success');
+                    window.location.hash = `#game?g=${game_id}`;
+                } catch (err) {
+                    btn.disabled = false;
+                    ui.showNotification(err.message, 'error');
+                }
+            };
+        });
+        list.querySelectorAll('.friend-remove-btn').forEach(btn => {
+            btn.onclick = async () => {
+                if (!confirm('Remove this friend?')) return;
+                try {
+                    await api.unfriend(parseInt(btn.dataset.id));
+                    this._renderFriends();
+                } catch (err) { ui.showNotification(err.message, 'error'); }
+            };
+        });
+    }
+
+    _wireFriendSearch() {
+        const input   = document.getElementById('friends-search-input');
+        const results = document.getElementById('friends-search-results');
+        if (!input || !results) return;
+
+        let debounce;
+        input.oninput = () => {
+            clearTimeout(debounce);
+            debounce = setTimeout(async () => {
+                const q = input.value.trim();
+                if (q.length < 2) { results.style.display = 'none'; return; }
+                try {
+                    const users = await api.searchUsers(q);
+                    if (!users.length) {
+                        results.innerHTML = '<div class="friend-search-empty">No players found</div>';
+                    } else {
+                        results.innerHTML = users.map(u => `
+                            <div class="friend-search-result">
+                                <div class="friend-avatar">${u.name[0].toUpperCase()}</div>
+                                <span class="friend-name">${this._escapeHtml(u.name)}</span>
+                                <button class="btn btn-primary btn-sm friend-add-btn" data-id="${u.id}">+ Add</button>
+                            </div>`).join('');
+                        results.querySelectorAll('.friend-add-btn').forEach(btn => {
+                            btn.onclick = async () => {
+                                btn.disabled = true;
+                                try {
+                                    await api.sendFriendRequest(parseInt(btn.dataset.id));
+                                    btn.textContent = 'Sent ✓';
+                                    ui.showNotification('Friend request sent!', 'success');
+                                } catch (err) {
+                                    btn.disabled = false;
+                                    ui.showNotification(err.message, 'error');
+                                }
+                            };
+                        });
+                    }
+                    results.style.display = '';
+                } catch { results.style.display = 'none'; }
+            }, 300);
+        };
+
+        // Hide results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !results.contains(e.target)) {
+                results.style.display = 'none';
+            }
+        }, { once: false });
     }
 
     async _saveDeck() {
