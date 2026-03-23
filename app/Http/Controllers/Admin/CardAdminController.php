@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Card;
+use App\Models\HeroClass;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CardAdminController extends Controller
 {
@@ -21,9 +23,9 @@ class CardAdminController extends Controller
             'mana_cost'   => 'required|integer|min:0|max:20',
             'attack'      => 'nullable|integer|min:0',
             'health'      => 'nullable|integer|min:1',
-            'card_type'   => 'required|in:minion,spell',
+            'card_type'   => 'required|in:minion,spell,weapon',
             'rarity'      => 'required|in:common,rare,epic,legendary',
-            'hero_class'  => 'required|in:warrior,mage,ranger,paladin,druid,neutral',
+            'hero_class'  => ['required', Rule::in(HeroClass::pluck('key')->all())],
             'flavor_text' => 'nullable|string',
         ]);
 
@@ -39,9 +41,9 @@ class CardAdminController extends Controller
             'mana_cost'   => 'sometimes|integer|min:0|max:20',
             'attack'      => 'nullable|integer|min:0',
             'health'      => 'nullable|integer|min:1',
-            'card_type'   => 'sometimes|in:minion,spell',
+            'card_type'   => 'sometimes|in:minion,spell,weapon',
             'rarity'      => 'sometimes|in:common,rare,epic,legendary',
-            'hero_class'  => 'sometimes|in:warrior,mage,ranger,paladin,druid,neutral',
+            'hero_class'  => ['sometimes', Rule::in(HeroClass::pluck('key')->all())],
             'flavor_text' => 'nullable|string',
         ]);
 

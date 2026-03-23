@@ -53,7 +53,7 @@
                 <!-- Opponent hero zone -->
                 <div class="board-hero-row board-hero-row--top">
                     <div class="board-hero-portrait opponent-portrait" id="opponent-portrait">
-                        <span class="hero-portrait-emoji">👤</span>
+                        <span class="hero-portrait-emoji" id="portrait-opp-icon">👤</span>
                         <div class="hero-portrait-hp" id="portrait-opp-hp">30</div>
                     </div>
                     <!-- Opponent game log (spells + deaths) -->
@@ -88,7 +88,7 @@
                 <!-- Player hero zone -->
                 <div class="board-hero-row board-hero-row--bottom">
                     <div class="board-hero-portrait player-portrait" id="player-portrait">
-                        <span class="hero-portrait-emoji">🧙</span>
+                        <span class="hero-portrait-emoji" id="portrait-my-icon">🧙</span>
                         <div class="hero-portrait-hp" id="portrait-my-hp">30</div>
                     </div>
                     <!-- Player game log (spells + deaths) -->

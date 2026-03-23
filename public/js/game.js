@@ -196,6 +196,7 @@ export class GameManager {
             this._renderDeck(my.deck?.length ?? 0);
             this._renderMana(my.mana, my.max_mana);
             this._prevMyHandSize = (my.hand || []).length;
+            this._updatePortraitIcon('portrait-my-icon', my.hero_class);
         }
         if (opp) {
             const oppHandSize  = (opp.hand  || []).length;
@@ -212,6 +213,7 @@ export class GameManager {
             this._prevOppHandSize  = oppHandSize;
             this._prevOppBoardSize = oppBoardSize;
             this._renderBoard(opp.board || [], true);
+            this._updatePortraitIcon('portrait-opp-icon', opp.hero_class);
         }
 
         this._updateUI(state, gameData);
@@ -767,6 +769,23 @@ export class GameManager {
     }
 
     /* ── game over ───────────────────────────────── */
+
+    _updatePortraitIcon(elId, heroClass) {
+        const el = document.getElementById(elId);
+        if (!el || !heroClass) return;
+
+        // Already set to this class — skip
+        if (el.dataset.heroClass === heroClass) return;
+        el.dataset.heroClass = heroClass;
+
+        // Look up class data from APP_DATA
+        const classData = (window.APP_DATA?.heroClasses ?? []).find(c => c.key === heroClass);
+        if (classData?.image) {
+            el.innerHTML = `<img src="${classData.image}" alt="${heroClass}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+        } else {
+            el.textContent = classData?.emoji ?? '⭐';
+        }
+    }
 
     _showGameOver(gameData) {
         const win = gameData.winner_id === this.playerId;

@@ -1135,10 +1135,11 @@ class RealmWarsApp {
                 document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById(`admin-tab-${tab.dataset.tab}`)?.classList.add('active');
-                if (tab.dataset.tab === 'cards') this._adminLoadCards();
-                if (tab.dataset.tab === 'users') this._adminLoadUsers();
-                if (tab.dataset.tab === 'packs')         this._adminLoadPacks();
+                if (tab.dataset.tab === 'cards')        this._adminLoadCards();
+                if (tab.dataset.tab === 'users')        this._adminLoadUsers();
+                if (tab.dataset.tab === 'packs')        this._adminLoadPacks();
                 if (tab.dataset.tab === 'translations') this._adminLoadTranslations();
+                if (tab.dataset.tab === 'classes')      this._adminLoadClasses();
             };
         });
 
@@ -1623,6 +1624,130 @@ class RealmWarsApp {
             ui.showNotification('Translation deleted', 'success');
             this._adminLoadTranslations();
         } catch (err) { ui.showNotification(err.message, 'error'); }
+    }
+
+    /* ── Classes admin ───────────────────────────── */
+
+    async _adminLoadClasses() {
+        try {
+            const classes = await api.adminGetClasses();
+            this._adminClasses = classes;
+            this._adminRenderClassesTable(classes);
+            this._adminWireClassForm();
+        } catch (err) { ui.showNotification('Failed to load classes', 'error'); }
+    }
+
+    _adminRenderClassesTable(classes) {
+        document.getElementById('admin-classes-tbody').innerHTML = classes.map(c => `
+            <tr>
+                <td>
+                    ${c.image_url
+                        ? `<img src="${this._escapeHtml(c.image_url)}" alt="${this._escapeHtml(c.name)}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;vertical-align:middle;margin-right:6px;">`
+                        : `<span style="font-size:1.4rem;vertical-align:middle;margin-right:6px">${this._escapeHtml(c.emoji)}</span>`}
+                    <strong>${this._escapeHtml(c.name)}</strong>
+                </td>
+                <td><code>${this._escapeHtml(c.key)}</code></td>
+                <td><span style="display:inline-block;width:80px;height:18px;border-radius:4px;background:${this._escapeHtml(c.gradient)}"></span></td>
+                <td class="admin-cell-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${this._escapeHtml(c.description ?? '')}</td>
+                <td>${c.card_count ?? 0}</td>
+                <td class="admin-actions">
+                    <button class="btn btn-ghost btn-xs admin-class-edit" data-id="${c.id}">Edit</button>
+                    <label class="btn btn-ghost btn-xs" style="cursor:pointer" title="Upload portrait image">
+                        🖼️ <input type="file" accept="image/*" style="display:none" class="admin-class-img-upload" data-id="${c.id}">
+                    </label>
+                    <button class="btn btn-danger btn-xs admin-class-delete" data-id="${c.id}">Del</button>
+                </td>
+            </tr>`).join('');
+
+        document.querySelectorAll('.admin-class-edit').forEach(btn => {
+            btn.onclick = () => this._adminOpenClassForm(this._adminClasses.find(c => c.id == btn.dataset.id));
+        });
+        document.querySelectorAll('.admin-class-delete').forEach(btn => {
+            btn.onclick = () => this._adminDeleteClass(parseInt(btn.dataset.id));
+        });
+        document.querySelectorAll('.admin-class-img-upload').forEach(input => {
+            input.onchange = async () => {
+                if (!input.files[0]) return;
+                try {
+                    await api.adminUploadClassImage(input.dataset.id, input.files[0]);
+                    ui.showNotification('Portrait uploaded!', 'success');
+                    this._adminLoadClasses();
+                } catch (err) {
+                    ui.showNotification(err.error || 'Upload failed', 'error');
+                }
+            };
+        });
+    }
+
+    _adminWireClassForm() {
+        document.getElementById('admin-class-new-btn').onclick = () => this._adminOpenClassForm(null);
+        document.getElementById('admin-class-cancel').onclick  = () => {
+            document.getElementById('admin-class-form-wrap').style.display = 'none';
+        };
+
+        document.getElementById('admin-class-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const id   = form.dataset.editId;
+            const data = {
+                name:        form.name.value,
+                emoji:       form.emoji.value,
+                gradient:    form.gradient.value,
+                description: form.description.value || null,
+                sort_order:  parseInt(form.sort_order.value) || 0,
+            };
+            if (!id) data.key = form.key.value;
+            const btn = form.querySelector('[type=submit]');
+            btn.disabled = true;
+            try {
+                if (id) {
+                    await api.adminUpdateClass(id, data);
+                    ui.showNotification('Class updated!', 'success');
+                } else {
+                    await api.adminCreateClass(data);
+                    ui.showNotification('Class created!', 'success');
+                }
+                document.getElementById('admin-class-form-wrap').style.display = 'none';
+                this._adminLoadClasses();
+            } catch (err) {
+                ui.showNotification(err.data?.message || err.message, 'error');
+            } finally { btn.disabled = false; }
+        };
+    }
+
+    _adminOpenClassForm(cls) {
+        const wrap = document.getElementById('admin-class-form-wrap');
+        const form = document.getElementById('admin-class-form');
+        form.reset();
+        const keyField = form.querySelector('[name=key]');
+        if (cls) {
+            document.getElementById('admin-class-form-title').textContent = `Edit Class: ${cls.name}`;
+            form.dataset.editId      = cls.id;
+            form.name.value          = cls.name;
+            form.emoji.value         = cls.emoji;
+            form.gradient.value      = cls.gradient;
+            form.description.value   = cls.description ?? '';
+            form.sort_order.value    = cls.sort_order ?? 0;
+            keyField.value           = cls.key;
+            keyField.disabled        = true;   // key is immutable once set
+        } else {
+            document.getElementById('admin-class-form-title').textContent = 'New Class';
+            delete form.dataset.editId;
+            keyField.disabled = false;
+        }
+        wrap.style.display = '';
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async _adminDeleteClass(id) {
+        if (!confirm('Delete this class? This will fail if any cards still use it.')) return;
+        try {
+            await api.adminDeleteClass(id);
+            ui.showNotification('Class deleted', 'success');
+            this._adminLoadClasses();
+        } catch (err) {
+            ui.showNotification(err.data?.error || err.message, 'error');
+        }
     }
 
     _escapeHtml(str) {

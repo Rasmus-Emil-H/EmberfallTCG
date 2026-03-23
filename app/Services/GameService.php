@@ -15,8 +15,8 @@ class GameService
     public function initializeGame(Game $game): array
     {
         // Get player decks (use first deck available or random cards)
-        $player1Deck = $this->getPlayerDeck($game->player1_id);
-        $player2Deck = $this->getPlayerDeck($game->player2_id);
+        [$player1Deck, $player1Class] = $this->getPlayerDeck($game->player1_id);
+        [$player2Deck, $player2Class] = $this->getPlayerDeck($game->player2_id);
 
         // Shuffle decks
         shuffle($player1Deck);
@@ -29,25 +29,27 @@ class GameService
         $state = [
             'players' => [
                 (string)$game->player1_id => [
-                    'hero_hp' => 30,
-                    'mana' => 1,
-                    'max_mana' => 1,
-                    'hand' => $player1Hand,
-                    'board' => [],
-                    'deck' => $player1Deck,
-                    'hero_power_used' => false,
+                    'hero_hp'        => 30,
+                    'mana'           => 1,
+                    'max_mana'       => 1,
+                    'hand'           => $player1Hand,
+                    'board'          => [],
+                    'deck'           => $player1Deck,
+                    'hero_power_used'=> false,
+                    'hero_class'     => $player1Class,
                 ],
                 (string)$game->player2_id => [
-                    'hero_hp' => 30,
-                    'mana' => 0,
-                    'max_mana' => 0,
-                    'hand' => $player2Hand,
-                    'board' => [],
-                    'deck' => $player2Deck,
-                    'hero_power_used' => false,
+                    'hero_hp'        => 30,
+                    'mana'           => 0,
+                    'max_mana'       => 0,
+                    'hand'           => $player2Hand,
+                    'board'          => [],
+                    'deck'           => $player2Deck,
+                    'hero_power_used'=> false,
+                    'hero_class'     => $player2Class,
                 ],
             ],
-            'turn' => 1,
+            'turn'          => 1,
             'active_player' => $game->player1_id,
         ];
 
@@ -71,13 +73,13 @@ class GameService
                 }
             }
             if (count($cardIds) >= 10) {
-                return $cardIds;
+                return [$cardIds, $deck->hero_class ?? 'neutral'];
             }
         }
 
         // Fallback: random 20 cards
         $cards = Card::inRandomOrder()->limit(20)->pluck('id')->toArray();
-        return $cards;
+        return [$cards, 'neutral'];
     }
 
     /**

@@ -12,6 +12,7 @@
         <button class="admin-tab" data-tab="users">{{ __('app.admin_tab_users') }}</button>
         <button class="admin-tab" data-tab="packs">{{ __('app.admin_tab_packs') }}</button>
         <button class="admin-tab" data-tab="translations">{{ __('app.admin_tab_translations') }}</button>
+        <button class="admin-tab" data-tab="classes">⚔️ Classes</button>
     </div>
 
     <!-- Dashboard tab -->
@@ -47,6 +48,7 @@
                     <select name="card_type" class="form-control">
                         <option value="minion">{{ __('app.admin_type_minion') }}</option>
                         <option value="spell">{{ __('app.admin_type_spell') }}</option>
+                        <option value="weapon">⚔️ Weapon</option>
                     </select>
                 </div>
                 <div class="form-group"><label>{{ __('app.admin_class') }}</label>
@@ -201,6 +203,46 @@
                     <th></th>
                 </tr></thead>
                 <tbody id="admin-packs-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Classes tab -->
+    <div class="admin-panel" id="admin-tab-classes">
+        <div class="admin-toolbar">
+            <button class="btn btn-primary btn-sm" id="admin-class-new-btn">+ New Class</button>
+        </div>
+        <div class="admin-form-card glass-card" id="admin-class-form-wrap" style="display:none">
+            <h3 class="glass-card-title" id="admin-class-form-title">New Class</h3>
+            <form id="admin-class-form" class="admin-form-grid">
+                <div class="form-group"><label>Key (slug)</label><input name="key" class="form-control" required placeholder="e.g. warrior" pattern="[a-z0-9_]+"></div>
+                <div class="form-group"><label>Display Name</label><input name="name" class="form-control" required placeholder="e.g. Warrior"></div>
+                <div class="form-group"><label>Emoji</label><input name="emoji" class="form-control" required placeholder="⚔️" maxlength="10"></div>
+                <div class="form-group"><label>Sort Order</label><input name="sort_order" type="number" min="0" class="form-control" value="10"></div>
+                <div class="form-group" style="grid-column:1/-1"><label>CSS Gradient</label><input name="gradient" class="form-control" required placeholder="linear-gradient(160deg,#7f1d1d,#b45309)"></div>
+                <div class="form-group" style="grid-column:1/-1"><label>Description</label><textarea name="description" class="form-control" rows="2" placeholder="Short description of this class..."></textarea></div>
+                <div class="form-group" style="grid-column:1/-1" id="admin-class-image-group" style="display:none">
+                    <label>Portrait Image (PNG/JPG, max 2MB)</label>
+                    <input type="file" name="image" id="admin-class-image-input" accept="image/*" class="form-control">
+                    <small style="color:var(--text-muted)">Upload after saving the class. Shown in-game as the hero portrait.</small>
+                </div>
+                <div class="admin-form-actions" style="grid-column:1/-1">
+                    <button type="submit" class="btn btn-primary" id="admin-class-submit">Save</button>
+                    <button type="button" class="btn btn-ghost" id="admin-class-cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+        <div class="admin-table-wrap">
+            <table class="admin-table" id="admin-classes-table">
+                <thead><tr>
+                    <th>Class</th>
+                    <th>Key</th>
+                    <th>Gradient Preview</th>
+                    <th>Description</th>
+                    <th>Cards</th>
+                    <th></th>
+                </tr></thead>
+                <tbody id="admin-classes-tbody"></tbody>
             </table>
         </div>
     </div>

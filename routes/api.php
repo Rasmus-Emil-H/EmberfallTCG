@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CardAdminController;
+use App\Http\Controllers\Admin\HeroClassAdminController;
 use App\Http\Controllers\ChallengeController;
 use App\Http\Controllers\FriendController;
 use App\Http\Controllers\QuickPayController;
@@ -79,6 +80,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/packs',         [PackAdminController::class,  'store']);
         Route::put('/packs/{pack}',   [PackAdminController::class,  'update']);
         Route::delete('/packs/{pack}',[PackAdminController::class,  'destroy']);
+
+        Route::get('/classes',                          [HeroClassAdminController::class, 'index']);
+        Route::post('/classes',                         [HeroClassAdminController::class, 'store']);
+        Route::put('/classes/{heroClass}',              [HeroClassAdminController::class, 'update']);
+        Route::delete('/classes/{heroClass}',           [HeroClassAdminController::class, 'destroy']);
+        Route::post('/classes/{heroClass}/image',       [HeroClassAdminController::class, 'uploadImage']);
 
         Route::get('/translations/locales',               [TranslationAdminController::class, 'locales']);
         Route::get('/translations',                       [TranslationAdminController::class, 'index']);

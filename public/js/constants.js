@@ -3,24 +3,23 @@
  * Single source of truth for class/rarity mappings used across all JS modules.
  */
 
-export const CLASS_EMOJI = {
-    warrior: '⚔️',
-    mage:    '🔮',
-    ranger:  '🏹',
-    paladin: '🛡️',
-    druid:   '🌿',
-    neutral: '⭐',
-};
+// Build class maps dynamically from server-provided APP_DATA so new classes
+// created via admin are reflected without a code deploy.
+function _buildClassMaps() {
+    const classes = window.APP_DATA?.heroClasses ?? [];
+    const emoji = {};
+    const grad  = {};
+    for (const c of classes) {
+        emoji[c.key] = c.emoji;
+        grad[c.key]  = c.gradient;
+    }
+    return { emoji, grad };
+}
 
-// CSS gradient strings — used for card art backgrounds in HTML rendering
-export const CLASS_GRAD = {
-    warrior: 'linear-gradient(160deg,#7f1d1d,#b45309)',
-    mage:    'linear-gradient(160deg,#1e3a5f,#4c1d95)',
-    ranger:  'linear-gradient(160deg,#14532d,#065f46)',
-    paladin: 'linear-gradient(160deg,#78350f,#92400e)',
-    druid:   'linear-gradient(160deg,#14532d,#1a2e05)',
-    neutral: 'linear-gradient(160deg,#1f2937,#374151)',
-};
+const { emoji: _classEmoji, grad: _classGrad } = _buildClassMaps();
+
+export const CLASS_EMOJI = _classEmoji;
+export const CLASS_GRAD  = _classGrad;
 
 // CSS hex strings — used for rarity colouring in HTML rendering
 export const RARITY_COLOR = {

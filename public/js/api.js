@@ -206,6 +206,20 @@ class ApiClient {
     acceptChallenge(id)                   { return this.post(`/challenges/${id}/accept`); }
     declineChallenge(id)                  { return this.post(`/challenges/${id}/decline`); }
 
+    adminGetClasses()               { return this.get('/admin/classes'); }
+    adminCreateClass(data)          { return this.post('/admin/classes', data); }
+    adminUpdateClass(id, data)      { return this.put(`/admin/classes/${id}`, data); }
+    adminDeleteClass(id)            { return this.delete(`/admin/classes/${id}`); }
+    adminUploadClassImage(id, file) {
+        const fd = new FormData();
+        fd.append('image', file);
+        return fetch(`/api/admin/classes/${id}/image`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}`, 'Accept': 'application/json' },
+            body: fd,
+        }).then(r => r.ok ? r.json() : r.json().then(d => Promise.reject(d)));
+    }
+
     adminGetTranslationLocales()              { return this.get('/admin/translations/locales'); }
     adminGetTranslations(locale)              { return this.get(`/admin/translations?locale=${locale}`); }
     adminCreateTranslation(data)              { return this.post('/admin/translations', data); }
